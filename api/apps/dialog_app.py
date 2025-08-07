@@ -92,6 +92,8 @@ def set_dialog():
                 "vector_similarity_weight": vector_similarity_weight,
                 "icon": icon,
                 "language": language
+                "icon": icon,
+                "language": language
             }
             if not DialogService.save(**dia):
                 return get_data_error_result(message="Fail to new a dialog!")
