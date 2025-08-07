@@ -469,11 +469,11 @@ class FileService(CommonService):
             pass
 
         FACTORY = {ParserType.PRESENTATION.value: presentation, ParserType.PICTURE.value: picture, ParserType.AUDIO.value: audio, ParserType.EMAIL.value: email}
-        parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;。；！？", "layout_recognize": "Plain Text"}
+        parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;:", "layout_recognize": "DeepDOC"}
         exe = ThreadPoolExecutor(max_workers=12)
         threads = []
         for file in file_objs:
-            kwargs = {"lang": "English", "callback": dummy, "parser_config": parser_config, "from_page": 0, "to_page": 100000, "tenant_id": user_id}
+            kwargs = {"lang": "Turkish", "callback": dummy, "parser_config": parser_config, "from_page": 0, "to_page": 100000, "tenant_id": user_id}
             filetype = filename_type(file.filename)
             blob = file.read()
             threads.append(exe.submit(FACTORY.get(FileService.get_parser(filetype, file.filename, ""), naive).chunk, file.filename, blob, **kwargs))
