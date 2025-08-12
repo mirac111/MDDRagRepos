@@ -474,7 +474,7 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         callback(0.1, "Start to parse.")
         sections = TxtParser()(filename, binary,
                                parser_config.get("chunk_token_num", 128),
-                               parser_config.get("delimiter", "\n!?;.:"))
+                               parser_config.get("delimiter", "\n!?;:"))
         callback(0.8, "Finish parsing.")
 
     elif re.search(r"\.(md|markdown)$", filename, re.IGNORECASE):
@@ -536,7 +536,7 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         chunks, images = naive_merge_with_images(sections, section_images,
                                         int(parser_config.get(
                                             "chunk_token_num", 128)), parser_config.get(
-                                            "delimiter", "\n!?;.:"))
+                                            "delimiter", "\n!?;:"))
         if kwargs.get("section_only", False):
             return chunks
 
@@ -545,7 +545,7 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         chunks = naive_merge(
             sections, int(parser_config.get(
                 "chunk_token_num", 128)), parser_config.get(
-                "delimiter", "\n!?;.:"))
+                "delimiter", "\n!?;:"))
         if kwargs.get("section_only", False):
             return chunks
 
