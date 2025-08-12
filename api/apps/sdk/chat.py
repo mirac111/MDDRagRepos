@@ -139,7 +139,7 @@ def create(tenant_id):
     res["llm"] = res.pop("llm_setting")
     res["llm"]["model_name"] = res.pop("llm_id")
     del res["kb_ids"]
-    res["dataset_ids"] = req["dataset_ids"]
+    res["dataset_ids"] = req.get("dataset_ids", [])
     res["avatar"] = res.pop("icon")
     return get_result(data=res)
 
@@ -166,7 +166,7 @@ def update(tenant_id, chat_id):
         kbs = KnowledgebaseService.get_by_ids(ids)
         embd_ids = [TenantLLMService.split_model_name_and_factory(kb.embd_id)[0] for kb in kbs]  # remove vendor suffix for comparison
         embd_count = list(set(embd_ids))
-        if len(embd_count) != 1:
+        if len(embd_count) > 1:
             return get_result(message='Datasets use different embedding models."', code=settings.RetCode.AUTHENTICATION_ERROR)
         req["kb_ids"] = ids
     llm = req.get("llm")

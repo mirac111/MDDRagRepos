@@ -24,10 +24,10 @@ import {
   CirclePlay,
   Download,
   History,
-  Key,
   LaptopMinimalCheck,
   Logs,
   ScreenShare,
+  Settings,
   Upload,
 } from 'lucide-react';
 import { ComponentPropsWithoutRef, useCallback } from 'react';
@@ -38,13 +38,15 @@ import EmbedDialog from './embed-dialog';
 import { useHandleExportOrImportJsonFile } from './hooks/use-export-json';
 import { useFetchDataOnMount } from './hooks/use-fetch-data';
 import { useGetBeginNodeDataInputs } from './hooks/use-get-begin-query';
-import { useOpenDocument } from './hooks/use-open-document';
 import {
   useSaveGraph,
   useSaveGraphBeforeOpeningDebugDrawer,
+  useWatchAgentChange,
 } from './hooks/use-save-graph';
 import { useShowEmbedModal } from './hooks/use-show-dialog';
+import { SettingDialog } from './setting-dialog';
 import { UploadAgentDialog } from './upload-agent-dialog';
+import { useAgentHistoryManager } from './use-agent-history-manager';
 import { VersionDialog } from './version-dialog';
 
 function AgentDropdownMenuItem({
@@ -67,7 +69,7 @@ export default function Agent() {
     showModal: showChatDrawer,
   } = useSetModalState();
   const { t } = useTranslation();
-  const openDocument = useOpenDocument();
+  useAgentHistoryManager();
   const {
     handleExportJson,
     handleImportJson,
@@ -76,7 +78,7 @@ export default function Agent() {
     hideFileUploadModal,
   } = useHandleExportOrImportJsonFile();
   const { saveGraph, loading } = useSaveGraph();
-  const { flowDetail } = useFetchDataOnMount();
+  const { flowDetail: agentDetail } = useFetchDataOnMount();
   const inputs = useGetBeginNodeDataInputs();
   const { handleRun } = useSaveGraphBeforeOpeningDebugDrawer(showChatDrawer);
   const handleRunAgent = useCallback(() => {
@@ -92,25 +94,38 @@ export default function Agent() {
     showModal: showVersionDialog,
   } = useSetModalState();
 
+  const {
+    visible: settingDialogVisible,
+    hideModal: hideSettingDialog,
+    showModal: showSettingDialog,
+  } = useSetModalState();
+
   const { showEmbedModal, hideEmbedModal, embedVisible, beta } =
     useShowEmbedModal();
+  const { navigateToAgentLogs } = useNavigatePage();
+  const time = useWatchAgentChange(chatDrawerVisible);
 
   return (
     <section className="h-full">
       <PageHeader>
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink onClick={navigateToAgentList}>
-                Agent
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{flowDetail.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <section>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink onClick={navigateToAgentList}>
+                  Agent
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{agentDetail.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="text-xs text-text-secondary translate-y-3">
+            {t('flow.autosaved')} {time}
+          </div>
+        </section>
         <div className="flex items-center gap-5">
           <ButtonLoading
             variant={'secondary'}
@@ -127,7 +142,10 @@ export default function Agent() {
             <History />
             {t('flow.historyversion')}
           </Button>
-          <Button variant={'secondary'}>
+          <Button
+            variant={'secondary'}
+            onClick={navigateToAgentLogs(id as string)}
+          >
             <Logs />
             {t('flow.log')}
           </Button>
@@ -139,11 +157,6 @@ export default function Agent() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <AgentDropdownMenuItem onClick={openDocument}>
-                <Key />
-                API
-              </AgentDropdownMenuItem>
-              <DropdownMenuSeparator />
               <AgentDropdownMenuItem onClick={handleImportJson}>
                 <Download />
                 {t('flow.import')}
@@ -154,10 +167,19 @@ export default function Agent() {
                 {t('flow.export')}
               </AgentDropdownMenuItem>
               <DropdownMenuSeparator />
-              <AgentDropdownMenuItem onClick={showEmbedModal}>
-                <ScreenShare />
-                {t('common.embedIntoSite')}
+              <AgentDropdownMenuItem onClick={showSettingDialog}>
+                <Settings />
+                {t('flow.setting')}
               </AgentDropdownMenuItem>
+              {location.hostname !== 'demo.ragflow.io' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <AgentDropdownMenuItem onClick={showEmbedModal}>
+                    <ScreenShare />
+                    {t('common.embedIntoSite')}
+                  </AgentDropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -186,6 +208,9 @@ export default function Agent() {
       )}
       {versionDialogVisible && (
         <VersionDialog hideModal={hideVersionDialog}></VersionDialog>
+      )}
+      {settingDialogVisible && (
+        <SettingDialog hideModal={hideSettingDialog}></SettingDialog>
       )}
     </section>
   );

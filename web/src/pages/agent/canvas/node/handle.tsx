@@ -4,7 +4,7 @@ import { Handle, HandleProps } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { HandleContext } from '../../context';
-import { NextStepDropdown } from './dropdown/next-step-dropdown';
+import { InnerNextStepDropdown } from './dropdown/next-step-dropdown';
 
 export function CommonHandle({
   className,
@@ -28,7 +28,7 @@ export function CommonHandle({
       <Handle
         {...props}
         className={cn(
-          'inline-flex justify-center items-center !bg-background-checked !size-4 !rounded-sm !border-none ',
+          'inline-flex justify-center items-center !bg-accent-primary !size-4 !rounded-sm !border-none ',
           className,
         )}
         onClick={(e) => {
@@ -36,11 +36,11 @@ export function CommonHandle({
           showModal();
         }}
       >
-        <Plus className="size-3 pointer-events-none" />
+        <Plus className="size-3 pointer-events-none text-text-title-invert" />
         {visible && (
-          <NextStepDropdown hideModal={hideModal}>
+          <InnerNextStepDropdown hideModal={hideModal}>
             <span></span>
-          </NextStepDropdown>
+          </InnerNextStepDropdown>
         )}
       </Handle>
     </HandleContext.Provider>

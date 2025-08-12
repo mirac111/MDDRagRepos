@@ -68,7 +68,7 @@ function EmbedDialog({
 
   const generateIframeSrc = useCallback(() => {
     const { visibleAvatar, locale } = values;
-    let src = `${location.origin}/chat/share?shared_id=${token}&from=${from}&auth=${beta}`;
+    let src = `${location.origin}/next-chat/share?shared_id=${token}&from=${from}&auth=${beta}`;
     if (visibleAvatar) {
       src += '&visible_avatar=1';
     }
@@ -100,7 +100,7 @@ function EmbedDialog({
             {t('embedIntoSite', { keyPrefix: 'common' })}
           </DialogTitle>
         </DialogHeader>
-        <section className="w-full overflow-auto space-y-5 text-sm text-text-sub-title">
+        <section className="w-full overflow-auto space-y-5 text-sm text-text-secondary">
           <Form {...form}>
             <form className="space-y-5">
               <FormField
@@ -139,18 +139,18 @@ function EmbedDialog({
           </Form>
           <div>
             <span>Embed code</span>
-            <HightLightMarkdown dark>{text}</HightLightMarkdown>
+            <HightLightMarkdown>{text}</HightLightMarkdown>
           </div>
           <div className=" font-medium mt-4 mb-1">
             {t(isAgent ? 'flow' : 'chat', { keyPrefix: 'header' })}
             <span className="ml-1 inline-block">ID</span>
           </div>
-          <div className="bg-background-card rounded-lg flex justify-between p-2">
+          <div className="bg-bg-card rounded-lg flex justify-between p-2">
             <span>{token} </span>
             <CopyToClipboard text={token}></CopyToClipboard>
           </div>
           <a
-            className="cursor-pointer text-background-checked inline-block"
+            className="cursor-pointer text-accent-primary inline-block"
             href={
               isAgent
                 ? 'https://ragflow.io/docs/dev/http_api_reference#create-session-with-agent'

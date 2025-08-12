@@ -26,15 +26,12 @@ from copy import deepcopy
 from functools import wraps
 from hmac import HMAC
 from io import BytesIO
-from typing import Any, Optional, Union, Callable, Coroutine, Type
+from typing import Any, Callable, Coroutine, Optional, Type, Union
 from urllib.parse import quote, urlencode
 from uuid import uuid1
 
-import trio
-from rag.utils.mcp_tool_call_conn import MCPToolCallSession, close_multiple_mcp_toolcall_sessions
-
-
 import requests
+import trio
 from flask import (
     Response,
     jsonify,
@@ -53,6 +50,7 @@ from api.constants import REQUEST_MAX_WAIT_SEC, REQUEST_WAIT_SEC
 from api.db.db_models import APIToken
 from api.db.services.llm_service import LLMService, TenantLLMService
 from api.utils import CustomJSONEncoder, get_uuid, json_dumps
+from rag.utils.mcp_tool_call_conn import MCPToolCallSession, close_multiple_mcp_toolcall_sessions
 
 requests.models.complexjson.dumps = functools.partial(json.dumps, cls=CustomJSONEncoder)
 
@@ -404,8 +402,22 @@ def get_data_openai(
     finish_reason=None,
     object="chat.completion",
     param=None,
+    stream=False
 ):
     total_tokens = prompt_tokens + completion_tokens
+
+    if stream:
+        return {
+            "id": f"{id}",
+            "object": "chat.completion.chunk",
+            "model": model,
+            "choices": [{
+                "delta": {"content": content},
+                "finish_reason": finish_reason,
+                "index": 0,
+            }],
+        }
+
     return {
         "id": f"{id}",
         "object": object,
@@ -416,9 +428,21 @@ def get_data_openai(
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
-            "completion_tokens_details": {"reasoning_tokens": 0, "accepted_prediction_tokens": 0, "rejected_prediction_tokens": 0},
+            "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "accepted_prediction_tokens": 0,
+                "rejected_prediction_tokens": 0,
+            },
         },
-        "choices": [{"message": {"role": "assistant", "content": content}, "logprobs": None, "finish_reason": finish_reason, "index": 0}],
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": content
+            },
+            "logprobs": None,
+            "finish_reason": finish_reason,
+            "index": 0,
+        }],
     }
 
 
@@ -689,11 +713,17 @@ def timeout(seconds: float | int = None, attempts: int = 2, *, exception: Option
 
 
 async def is_strong_enough(chat_model, embedding_model):
-    @timeout(30, 2)
+    count = settings.STRONG_TEST_COUNT
+    if not chat_model or not embedding_model:
+        return
+    if isinstance(count, int) and count <= 0:
+        return
+
+    @timeout(60, 2)
     async def _is_strong_enough():
         nonlocal chat_model, embedding_model
         if embedding_model:
-            with trio.fail_after(3):
+            with trio.fail_after(10):
                 _ = await trio.to_thread.run_sync(lambda: embedding_model.encode(["Are you strong enough!?"]))
         if chat_model:
             with trio.fail_after(30):
@@ -703,5 +733,5 @@ async def is_strong_enough(chat_model, embedding_model):
 
     # Pressure test for GraphRAG task
     async with trio.open_nursery() as nursery:
-        for _ in range(32):
+        for _ in range(count):
             nursery.start_soon(_is_strong_enough)

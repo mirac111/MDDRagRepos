@@ -1,6 +1,7 @@
 import {
   Connection,
   Edge,
+  getOutgoers,
   Node,
   Position,
   ReactFlowInstance,
@@ -15,9 +16,6 @@ import { get, lowerFirst, omit } from 'lodash';
 import { UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
-  NodeMap,
-  Operator,
-  RestrictedUpstreamMap,
   initialAgentValues,
   initialAkShareValues,
   initialArXivValues,
@@ -33,7 +31,6 @@ import {
   initialDuckValues,
   initialEmailValues,
   initialExeSqlValues,
-  initialGenerateValues,
   initialGithubValues,
   initialGoogleScholarValues,
   initialGoogleValues,
@@ -48,14 +45,19 @@ import {
   initialRelevantValues,
   initialRetrievalValues,
   initialRewriteQuestionValues,
+  initialStringTransformValues,
   initialSwitchValues,
+  initialTavilyExtractValues,
   initialTavilyValues,
-  initialTemplateValues,
   initialTuShareValues,
+  initialUserFillUpValues,
   initialWaitingDialogueValues,
   initialWenCaiValues,
   initialWikipediaValues,
   initialYahooFinanceValues,
+  NodeMap,
+  Operator,
+  RestrictedUpstreamMap,
 } from './constant';
 import useGraphStore, { RFState } from './store';
 import {
@@ -91,8 +93,6 @@ export const useInitializeOperatorParams = () => {
     return {
       [Operator.Begin]: initialBeginValues,
       [Operator.Retrieval]: initialRetrievalValues,
-      [Operator.Generate]: { ...initialGenerateValues, llm_id: llmId },
-      [Operator.Answer]: {},
       [Operator.Categorize]: { ...initialCategorizeValues, llm_id: llmId },
       [Operator.Relevant]: { ...initialRelevantValues, llm_id: llmId },
       [Operator.RewriteQuestion]: {
@@ -127,7 +127,6 @@ export const useInitializeOperatorParams = () => {
       [Operator.Note]: initialNoteValues,
       [Operator.Crawler]: initialCrawlerValues,
       [Operator.Invoke]: initialInvokeValues,
-      [Operator.Template]: initialTemplateValues,
       [Operator.Email]: initialEmailValues,
       [Operator.Iteration]: initialIterationValues,
       [Operator.IterationStart]: initialIterationValues,
@@ -135,6 +134,10 @@ export const useInitializeOperatorParams = () => {
       [Operator.WaitingDialogue]: initialWaitingDialogueValues,
       [Operator.Agent]: { ...initialAgentValues, llm_id: llmId },
       [Operator.TavilySearch]: initialTavilyValues,
+      [Operator.TavilyExtract]: initialTavilyExtractValues,
+      [Operator.Tool]: {},
+      [Operator.UserFillUp]: initialUserFillUpValues,
+      [Operator.StringTransform]: initialStringTransformValues,
     };
   }, [llmId]);
 
@@ -331,9 +334,8 @@ export const useHandleFormValuesChange = (
 };
 
 export const useValidateConnection = () => {
-  const { edges, getOperatorTypeFromId, getParentIdById } = useGraphStore(
-    (state) => state,
-  );
+  const { getOperatorTypeFromId, getParentIdById, edges, nodes } =
+    useGraphStore((state) => state);
 
   const isSameNodeChild = useCallback(
     (connection: Connection | Edge) => {
@@ -347,6 +349,27 @@ export const useValidateConnection = () => {
     [getParentIdById],
   );
 
+  const hasCanvasCycle = useCallback(
+    (connection: Connection | Edge) => {
+      const target = nodes.find((node) => node.id === connection.target);
+      const hasCycle = (node: RAGFlowNodeType, visited = new Set()) => {
+        if (visited.has(node.id)) return false;
+
+        visited.add(node.id);
+
+        for (const outgoer of getOutgoers(node, nodes, edges)) {
+          if (outgoer.id === connection.source) return true;
+          if (hasCycle(outgoer, visited)) return true;
+        }
+      };
+
+      if (target?.id === connection.source) return false;
+
+      return target ? !hasCycle(target) : false;
+    },
+    [edges, nodes],
+  );
+
   // restricted lines cannot be connected successfully.
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => {
@@ -354,20 +377,20 @@ export const useValidateConnection = () => {
       const isSelfConnected = connection.target === connection.source;
 
       // limit the connection between two nodes to only one connection line in one direction
-      const hasLine = edges.some(
-        (x) => x.source === connection.source && x.target === connection.target,
-      );
+      // const hasLine = edges.some(
+      //   (x) => x.source === connection.source && x.target === connection.target,
+      // );
 
       const ret =
         !isSelfConnected &&
-        !hasLine &&
         RestrictedUpstreamMap[
           getOperatorTypeFromId(connection.source) as Operator
         ]?.every((x) => x !== getOperatorTypeFromId(connection.target)) &&
-        isSameNodeChild(connection);
+        isSameNodeChild(connection) &&
+        hasCanvasCycle(connection);
       return ret;
     },
-    [edges, getOperatorTypeFromId, isSameNodeChild],
+    [getOperatorTypeFromId, hasCanvasCycle, isSameNodeChild],
   );
 
   return isValidConnection;

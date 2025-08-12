@@ -463,6 +463,7 @@ class DataBaseModel(BaseModel):
 
 
 @DB.connection_context()
+@DB.lock("init_database_tables", 60)
 def init_database_tables(alter_fields=[]):
     members = inspect.getmembers(sys.modules[__name__], inspect.isclass)
     table_objs = []
@@ -474,7 +475,7 @@ def init_database_tables(alter_fields=[]):
             if not obj.table_exists():
                 logging.debug(f"start create table {obj.__name__}")
                 try:
-                    obj.create_table()
+                    obj.create_table(safe=True)
                     logging.debug(f"create table success: {obj.__name__}")
                 except Exception as e:
                     logging.exception(e)
@@ -743,6 +744,7 @@ class Dialog(DataBaseModel):
         null=False,
         default={"system": "", "prologue": "Hi! I'm your assistant, what can I do for you?", "parameters": [], "empty_response": "Sorry! No relevant content was found in the knowledge base!"},
     )
+    meta_data_filter = JSONField(null=True, default={})
 
     similarity_threshold = FloatField(default=0.2)
     vector_similarity_weight = FloatField(default=0.3)
@@ -798,6 +800,7 @@ class API4Conversation(DataBaseModel):
     duration = FloatField(default=0, index=True)
     round = IntegerField(default=0, index=True)
     thumb_up = IntegerField(default=0, index=True)
+    errors = TextField(null=True, help_text="errors")
 
     class Meta:
         db_table = "api_4_conversation"
@@ -902,6 +905,7 @@ class Search(DataBaseModel):
 
 
 def migrate_db():
+    logging.disable(logging.ERROR)
     migrator = DatabaseMigrator[settings.DATABASE_TYPE.upper()].value(DB)
     try:
         migrate(migrator.add_column("file", "source_type", CharField(max_length=128, null=False, default="", help_text="where dose this document come from", index=True)))
@@ -1008,3 +1012,12 @@ def migrate_db():
         migrate(migrator.add_column("document", "suffix", CharField(max_length=32, null=False, default="", help_text="The real file extension suffix", index=True)))
     except Exception:
         pass
+    try:
+        migrate(migrator.add_column("api_4_conversation", "errors", TextField(null=True, help_text="errors")))
+    except Exception:
+        pass
+    try:
+        migrate(migrator.add_column("dialog", "meta_data_filter", JSONField(null=True, default={})))
+    except Exception:
+        pass
+    logging.disable(logging.NOTSET)

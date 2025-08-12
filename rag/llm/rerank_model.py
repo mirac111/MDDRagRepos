@@ -33,7 +33,11 @@ from api.utils.log_utils import log_exception
 from rag.utils import num_tokens_from_string, truncate
 
 class Base(ABC):
-    def __init__(self, key, model_name):
+    def __init__(self, key, model_name, **kwargs):
+        """
+        Abstract base class constructor.
+        Parameters are not stored; initialization is left to subclasses.
+        """
         pass
 
     def similarity(self, query: str, texts: list):
@@ -89,7 +93,7 @@ class DefaultRerank(Base):
 
             torch.cuda.empty_cache()
         except Exception as e:
-            print(f"Error emptying cache: {e}")
+            log_exception(e)
 
     def _process_batch(self, pairs, max_batch_size=None):
         """template method for subclass call"""
@@ -315,7 +319,7 @@ class NvidiaRerank(Base):
 class LmStudioRerank(Base):
     _FACTORY_NAME = "LM-Studio"
 
-    def __init__(self, key, model_name, base_url):
+    def __init__(self, key, model_name, base_url, **kwargs):
         pass
 
     def similarity(self, query: str, texts: list):
@@ -396,7 +400,7 @@ class CoHereRerank(Base):
 class TogetherAIRerank(Base):
     _FACTORY_NAME = "TogetherAI"
 
-    def __init__(self, key, model_name, base_url):
+    def __init__(self, key, model_name, base_url, **kwargs):
         pass
 
     def similarity(self, query: str, texts: list):
@@ -616,4 +620,13 @@ class GiteeRerank(JinaRerank):
     def __init__(self, key, model_name, base_url="https://ai.gitee.com/v1/rerank"):
         if not base_url:
             base_url = "https://ai.gitee.com/v1/rerank"
+        super().__init__(key, model_name, base_url)
+
+
+class Ai302Rerank(Base):
+    _FACTORY_NAME = "302.AI"
+
+    def __init__(self, key, model_name, base_url="https://api.302.ai/v1/rerank"):
+        if not base_url:
+            base_url = "https://api.302.ai/v1/rerank"
         super().__init__(key, model_name, base_url)

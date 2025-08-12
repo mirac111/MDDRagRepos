@@ -23,12 +23,14 @@ from functools import partial
 from timeit import default_timer as timer
 
 from langfuse import Langfuse
+from peewee import fn
 
 from agentic_reasoning import DeepResearcher
 from api import settings
 from api.db import LLMType, ParserType, StatusEnum
 from api.db.db_models import DB, Dialog
 from api.db.services.common_service import CommonService
+from api.db.services.document_service import DocumentService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.langfuse_service import TenantLangfuseService
 from api.db.services.llm_service import LLMBundle, TenantLLMService
@@ -37,6 +39,7 @@ from rag.app.resume import forbidden_select_fields4resume
 from rag.app.tag import label_question
 from rag.nlp.search import index_name
 from rag.prompts import chunks_format, citation_prompt, cross_languages, full_question, kb_prompt, keyword_extraction, message_fit_in
+from rag.prompts.prompts import gen_meta_filter
 from rag.utils import num_tokens_from_string, rmSpace
 from rag.utils.tavily_conn import Tavily
 
@@ -94,6 +97,66 @@ class DialogService(CommonService):
         chats = chats.paginate(page_number, items_per_page)
 
         return list(chats.dicts())
+
+
+    @classmethod
+    @DB.connection_context()
+    def get_by_tenant_ids(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, keywords, parser_id=None):
+        from api.db.db_models import User
+
+        fields = [
+            cls.model.id,
+            cls.model.tenant_id,
+            cls.model.name,
+            cls.model.description,
+            cls.model.language,
+            cls.model.llm_id,
+            cls.model.llm_setting,
+            cls.model.prompt_type,
+            cls.model.prompt_config,
+            cls.model.similarity_threshold,
+            cls.model.vector_similarity_weight,
+            cls.model.top_n,
+            cls.model.top_k,
+            cls.model.do_refer,
+            cls.model.rerank_id,
+            cls.model.kb_ids,
+            cls.model.status,
+            User.nickname,
+            User.avatar.alias("tenant_avatar"),
+            cls.model.update_time,
+            cls.model.create_time,
+        ]
+        if keywords:
+            dialogs = (
+                cls.model.select(*fields)
+                .join(User, on=(cls.model.tenant_id == User.id))
+                .where(
+                    (cls.model.tenant_id.in_(joined_tenant_ids) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value),
+                    (fn.LOWER(cls.model.name).contains(keywords.lower())),
+                )
+            )
+        else:
+            dialogs = (
+                cls.model.select(*fields)
+                .join(User, on=(cls.model.tenant_id == User.id))
+                .where(
+                    (cls.model.tenant_id.in_(joined_tenant_ids) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value),
+                )
+            )
+        if parser_id:
+            dialogs = dialogs.where(cls.model.parser_id == parser_id)
+        if desc:
+            dialogs = dialogs.order_by(cls.model.getter_by(orderby).desc())
+        else:
+            dialogs = dialogs.order_by(cls.model.getter_by(orderby).asc())
+
+        count = dialogs.count()
+
+        if page_number and items_per_page:
+            dialogs = dialogs.paginate(page_number, items_per_page)
+
+        return list(dialogs.dicts()), count
 
 
 def chat_solo(dialog, messages, stream=True):
@@ -189,6 +252,46 @@ def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
     return answer, idx
 
 
+def meta_filter(metas: dict, filters: list[dict]):
+    doc_ids = []
+    def filter_out(v2docs, operator, value):
+        nonlocal doc_ids
+        for input,docids in v2docs.items():
+            try:
+                input = float(input)
+                value = float(value)
+            except Exception:
+                input = str(input)
+                value = str(value)
+
+            for conds in [
+                    (operator == "contains", str(value).lower() in str(input).lower()),
+                    (operator == "not contains", str(value).lower() not in str(input).lower()),
+                    (operator == "start with", str(input).lower().startswith(str(value).lower())),
+                    (operator == "end with", str(input).lower().endswith(str(value).lower())),
+                    (operator == "empty", not input),
+                    (operator == "not empty", input),
+                    (operator == "=", input == value),
+                    (operator == "≠", input != value),
+                    (operator == ">", input > value),
+                    (operator == "<", input < value),
+                    (operator == "≥", input >= value),
+                    (operator == "≤", input <= value),
+                ]:
+                try:
+                    if all(conds):
+                        doc_ids.extend(docids)
+                except Exception:
+                    pass
+
+    for k, v2docs in metas.items():
+        for f in filters:
+            if k != f["key"]:
+                continue
+            filter_out(v2docs, f["op"], f["value"])
+    return doc_ids
+
+
 def chat(dialog, messages, stream=True, **kwargs):
     assert messages[-1]["role"] == "user", "The last content of this conversation is not from user."
     if not dialog.kb_ids and not dialog.prompt_config.get("tavily_api_key"):
@@ -208,12 +311,14 @@ def chat(dialog, messages, stream=True, **kwargs):
     check_llm_ts = timer()
 
     langfuse_tracer = None
+    trace_context = {}
     langfuse_keys = TenantLangfuseService.filter_by_tenant(tenant_id=dialog.tenant_id)
     if langfuse_keys:
         langfuse = Langfuse(public_key=langfuse_keys.public_key, secret_key=langfuse_keys.secret_key, host=langfuse_keys.host)
         if langfuse.auth_check():
             langfuse_tracer = langfuse
-            langfuse.trace = langfuse_tracer.trace(name=f"{dialog.name}-{llm_model_config['llm_name']}")
+            trace_id = langfuse_tracer.create_trace_id()
+            trace_context = {"trace_id": trace_id}
 
     check_langfuse_tracer_ts = timer()
     kbs, embd_mdl, rerank_mdl, chat_mdl, tts_mdl = get_models(dialog)
@@ -224,9 +329,10 @@ def chat(dialog, messages, stream=True, **kwargs):
 
     retriever = settings.retrievaler
     questions = [m["content"] for m in messages if m["role"] == "user"][-3:]
-    attachments = kwargs["doc_ids"].split(",") if "doc_ids" in kwargs else None
+    attachments = kwargs["doc_ids"].split(",") if "doc_ids" in kwargs else []
     if "doc_ids" in messages[-1]:
         attachments = messages[-1]["doc_ids"]
+
     prompt_config = dialog.prompt_config
     field_map = KnowledgebaseService.get_field_map(dialog.kb_ids)
     # try to use sql if field mapping is good to go
@@ -252,6 +358,14 @@ def chat(dialog, messages, stream=True, **kwargs):
 
     if prompt_config.get("cross_languages"):
         questions = [cross_languages(dialog.tenant_id, dialog.llm_id, questions[0], prompt_config["cross_languages"])]
+
+    if dialog.meta_data_filter:
+        metas = DocumentService.get_meta_by_kbs(dialog.kb_ids)
+        if dialog.meta_data_filter.get("method") == "auto":
+            filters = gen_meta_filter(chat_mdl, metas, questions[-1])
+            attachments.extend(meta_filter(metas, filters))
+        elif dialog.meta_data_filter.get("method") == "manual":
+            attachments.extend(meta_filter(metas, dialog.meta_data_filter["manual"]))
 
     if prompt_config.get("keyword", False):
         questions[-1] += keyword_extraction(chat_mdl, questions[-1])
@@ -400,17 +514,19 @@ def chat(dialog, messages, stream=True, **kwargs):
             f"  - Token speed: {int(tk_num / (generate_result_time_cost / 1000.0))}/s"
         )
 
-        langfuse_output = "\n" + re.sub(r"^.*?(### Query:.*)", r"\1", prompt, flags=re.DOTALL)
-        langfuse_output = {"time_elapsed:": re.sub(r"\n", "  \n", langfuse_output), "created_at": time.time()}
-
         # Add a condition check to call the end method only if langfuse_tracer exists
         if langfuse_tracer and "langfuse_generation" in locals():
-            langfuse_generation.end(output=langfuse_output)
+            langfuse_output = "\n" + re.sub(r"^.*?(### Query:.*)", r"\1", prompt, flags=re.DOTALL)
+            langfuse_output = {"time_elapsed:": re.sub(r"\n", "  \n", langfuse_output), "created_at": time.time()}
+            langfuse_generation.update(output=langfuse_output)
+            langfuse_generation.end()
 
         return {"answer": think + answer, "reference": refs, "prompt": re.sub(r"\n", "  \n", prompt), "created_at": time.time()}
 
     if langfuse_tracer:
-        langfuse_generation = langfuse_tracer.trace.generation(name="chat", model=llm_model_config["llm_name"], input={"prompt": prompt, "prompt4citation": prompt4citation, "messages": msg})
+        langfuse_generation = langfuse_tracer.start_generation(
+            trace_context=trace_context, name="chat", model=llm_model_config["llm_name"], input={"prompt": prompt, "prompt4citation": prompt4citation, "messages": msg}
+        )
 
     if stream:
         last_ans = ""
