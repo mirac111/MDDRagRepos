@@ -4,12 +4,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useSetModalState } from '@/hooks/common-hooks';
 import { cn } from '@/lib/utils';
 import {
   ConnectionMode,
   ControlButton,
   Controls,
   NodeTypes,
+  Position,
   ReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -22,7 +24,9 @@ import {
   AgentChatContext,
   AgentChatLogContext,
   AgentInstanceContext,
+  HandleContext,
 } from '../context';
+
 import FormSheet from '../form-sheet/next';
 import {
   useHandleDrop,
@@ -32,7 +36,13 @@ import {
 import { useAddNode } from '../hooks/use-add-node';
 import { useBeforeDelete } from '../hooks/use-before-delete';
 import { useCacheChatLog } from '../hooks/use-cache-chat-log';
+import { useConnectionDrag } from '../hooks/use-connection-drag';
+import { useDropdownPosition } from '../hooks/use-dropdown-position';
 import { useMoveNote } from '../hooks/use-move-note';
+import { usePlaceholderManager } from '../hooks/use-placeholder-manager';
+import { useDropdownManager } from './context';
+
+import Spotlight from '@/components/spotlight';
 import {
   useHideFormSheetOnNodeDeletion,
   useShowDrawer,
@@ -46,6 +56,7 @@ import { RagNode } from './node';
 import { AgentNode } from './node/agent-node';
 import { BeginNode } from './node/begin-node';
 import { CategorizeNode } from './node/categorize-node';
+import { InnerNextStepDropdown } from './node/dropdown/next-step-dropdown';
 import { GenerateNode } from './node/generate-node';
 import { InvokeNode } from './node/invoke-node';
 import { IterationNode, IterationStartNode } from './node/iteration-node';
@@ -53,6 +64,7 @@ import { KeywordNode } from './node/keyword-node';
 import { LogicNode } from './node/logic-node';
 import { MessageNode } from './node/message-node';
 import NoteNode from './node/note-node';
+import { PlaceholderNode } from './node/placeholder-node';
 import { RelevantNode } from './node/relevant-node';
 import { RetrievalNode } from './node/retrieval-node';
 import { RewriteNode } from './node/rewrite-node';
@@ -64,6 +76,7 @@ export const nodeTypes: NodeTypes = {
   ragNode: RagNode,
   categorizeNode: CategorizeNode,
   beginNode: BeginNode,
+  placeholderNode: PlaceholderNode,
   relevantNode: RelevantNode,
   logicNode: LogicNode,
   noteNode: NoteNode,
@@ -96,7 +109,7 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
   const {
     nodes,
     edges,
-    onConnect,
+    onConnect: originalOnConnect,
     onEdgesChange,
     onNodesChange,
     onSelectionChange,
@@ -147,14 +160,6 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
 
   const { theme } = useTheme();
 
-  const onPaneClick = useCallback(() => {
-    hideFormDrawer();
-    if (imgVisible) {
-      addNoteNode(mouse);
-      hideImage();
-    }
-  }, [addNoteNode, hideFormDrawer, hideImage, imgVisible, mouse]);
-
   useEffect(() => {
     if (!chatVisible) {
       clearEventList();
@@ -171,6 +176,59 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
   const isDarkTheme = useIsDarkTheme();
 
   useHideFormSheetOnNodeDeletion({ hideFormDrawer });
+
+  const { visible, hideModal, showModal } = useSetModalState();
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+
+  const { clearActiveDropdown } = useDropdownManager();
+
+  const { removePlaceholderNode, onNodeCreated, setCreatedPlaceholderRef } =
+    usePlaceholderManager(reactFlowInstance);
+
+  const { calculateDropdownPosition } = useDropdownPosition(reactFlowInstance);
+
+  const {
+    onConnectStart,
+    onConnectEnd,
+    handleConnect,
+    getConnectionStartContext,
+    shouldPreventClose,
+    onMove,
+  } = useConnectionDrag(
+    reactFlowInstance,
+    originalOnConnect,
+    showModal,
+    hideModal,
+    setDropdownPosition,
+    setCreatedPlaceholderRef,
+    calculateDropdownPosition,
+    removePlaceholderNode,
+    clearActiveDropdown,
+  );
+
+  const onPaneClick = useCallback(() => {
+    hideFormDrawer();
+    if (visible && !shouldPreventClose()) {
+      removePlaceholderNode();
+      hideModal();
+      clearActiveDropdown();
+    }
+    if (imgVisible) {
+      addNoteNode(mouse);
+      hideImage();
+    }
+  }, [
+    hideFormDrawer,
+    visible,
+    shouldPreventClose,
+    hideModal,
+    imgVisible,
+    addNoteNode,
+    mouse,
+    hideImage,
+    clearActiveDropdown,
+    removePlaceholderNode,
+  ]);
 
   return (
     <div className={styles.canvasWrapper}>
@@ -202,10 +260,13 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
           edges={edges}
           onEdgesChange={onEdgesChange}
           fitView
-          onConnect={onConnect}
+          onConnect={handleConnect}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           onDrop={onDrop}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
+          onMove={onMove}
           onDragOver={onDragOver}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
@@ -232,6 +293,7 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
           onBeforeDelete={handleBeforeDelete}
         >
           <AgentBackground></AgentBackground>
+          <Spotlight className="z-0" opcity={0.7} coverage={70} />
           <Controls position={'bottom-center'} orientation="horizontal">
             <ControlButton>
               <Tooltip>
@@ -243,6 +305,31 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
             </ControlButton>
           </Controls>
         </ReactFlow>
+        {visible && (
+          <HandleContext.Provider
+            value={
+              getConnectionStartContext() || {
+                nodeId: '',
+                id: '',
+                type: 'source',
+                position: Position.Right,
+                isFromConnectionDrag: true,
+              }
+            }
+          >
+            <InnerNextStepDropdown
+              hideModal={() => {
+                removePlaceholderNode();
+                hideModal();
+                clearActiveDropdown();
+              }}
+              position={dropdownPosition}
+              onNodeCreated={onNodeCreated}
+            >
+              <span></span>
+            </InnerNextStepDropdown>
+          </HandleContext.Provider>
+        )}
       </AgentInstanceContext.Provider>
       <NotebookPen
         className={cn('hidden absolute size-6', { block: imgVisible })}

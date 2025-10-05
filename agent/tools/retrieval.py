@@ -23,8 +23,7 @@ from api.db.services.llm_service import LLMBundle
 from api import settings
 from api.utils.api_utils import timeout
 from rag.app.tag import label_question
-from rag.prompts import kb_prompt
-from rag.prompts.prompts import cross_languages
+from rag.prompts.generator import cross_languages, kb_prompt
 
 
 class RetrievalParam(ToolParamBase):
@@ -75,7 +74,7 @@ class RetrievalParam(ToolParamBase):
 class Retrieval(ToolBase, ABC):
     component_name = "Retrieval"
 
-    @timeout(os.environ.get("COMPONENT_EXEC_TIMEOUT", 12))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 12)))
     def _invoke(self, **kwargs):
         if not kwargs.get("query"):
             self.set_output("formalized_content", self._param.empty_response)
@@ -86,10 +85,16 @@ class Retrieval(ToolBase, ABC):
                 kb_ids.append(id)
                 continue
             kb_nm = self._canvas.get_variable_value(id)
-            e, kb = KnowledgebaseService.get_by_name(kb_nm, self._canvas._tenant_id)
-            if not e:
-                raise Exception(f"Dataset({kb_nm}) does not exist.")
-            kb_ids.append(kb.id)
+            # if kb_nm is a list
+            kb_nm_list = kb_nm if isinstance(kb_nm, list) else [kb_nm]
+            for nm_or_id in kb_nm_list:
+                e, kb = KnowledgebaseService.get_by_name(nm_or_id,
+                                                         self._canvas._tenant_id)
+                if not e:
+                    e, kb = KnowledgebaseService.get_by_id(nm_or_id)
+                    if not e:
+                        raise Exception(f"Dataset({nm_or_id}) does not exist.")
+                kb_ids.append(kb.id)
 
         filtered_kb_ids: list[str] = list(set([kb_id for kb_id in kb_ids if kb_id]))
 
@@ -108,7 +113,9 @@ class Retrieval(ToolBase, ABC):
         if self._param.rerank_id:
             rerank_mdl = LLMBundle(kbs[0].tenant_id, LLMType.RERANK, self._param.rerank_id)
 
-        query = kwargs["query"]
+        vars = self.get_input_elements_from_text(kwargs["query"])
+        vars = {k:o["value"] for k,o in vars.items()}
+        query = self.string_format(kwargs["query"], vars)
         if self._param.cross_languages:
             query = cross_languages(kbs[0].tenant_id, None, query, self._param.cross_languages)
 
@@ -155,13 +162,20 @@ class Retrieval(ToolBase, ABC):
             self.set_output("formalized_content", self._param.empty_response)
             return
 
-        self._canvas.add_refernce(kbinfos["chunks"], kbinfos["doc_aggs"])
+        # Format the chunks for JSON output (similar to how other tools do it)
+        json_output = kbinfos["chunks"].copy()
+
+        self._canvas.add_reference(kbinfos["chunks"], kbinfos["doc_aggs"])
         form_cnt = "\n".join(kb_prompt(kbinfos, 200000, True))
+
+        # Set both formalized content and JSON output
         self.set_output("formalized_content", form_cnt)
+        self.set_output("json", json_output)
+
         return form_cnt
 
     def thoughts(self) -> str:
         return """
-Keywords: {} 
+Keywords: {}
 Looking for the most relevant articles.
         """.format(self.get_input().get("query", "-_-!"))

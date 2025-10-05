@@ -163,6 +163,23 @@ class FileService(CommonService):
 
     @classmethod
     @DB.connection_context()
+    def get_all_file_ids_by_tenant_id(cls, tenant_id):
+        fields = [cls.model.id]
+        files = cls.model.select(*fields).where(cls.model.tenant_id == tenant_id)
+        files.order_by(cls.model.create_time.asc())
+        offset, limit = 0, 100
+        res = []
+        while True:
+            file_batch = files.offset(offset).limit(limit)
+            _temp = list(file_batch.dicts())
+            if not _temp:
+                break
+            res.extend(_temp)
+            offset += limit
+        return res
+
+    @classmethod
+    @DB.connection_context()
     def create_folder(cls, file, parent_id, name, count):
         # Recursively create folder structure
         # Args:
@@ -227,10 +244,13 @@ class FileService(CommonService):
         #     tenant_id: Tenant ID
         # Returns:
         #     Knowledge base folder dictionary
-        for root in cls.model.select().where((cls.model.tenant_id == tenant_id), (cls.model.parent_id == cls.model.id)):
-            for folder in cls.model.select().where((cls.model.tenant_id == tenant_id), (cls.model.parent_id == root.id), (cls.model.name == KNOWLEDGEBASE_FOLDER_NAME)):
-                return folder.to_dict()
-        assert False, "Can't find the KB folder. Database init error."
+        root_folder = cls.get_root_folder(tenant_id)
+        root_id = root_folder["id"]
+        kb_folder = cls.model.select().where((cls.model.tenant_id == tenant_id), (cls.model.parent_id == root_id), (cls.model.name == KNOWLEDGEBASE_FOLDER_NAME)).first()
+        if not kb_folder:
+            kb_folder = cls.new_a_file_from_kb(tenant_id, KNOWLEDGEBASE_FOLDER_NAME, root_id)
+            return kb_folder
+        return kb_folder.to_dict()
 
     @classmethod
     @DB.connection_context()
@@ -512,10 +532,9 @@ class FileService(CommonService):
     @staticmethod
     def get_blob(user_id, location):
         bname = f"{user_id}-downloads"
-        return  STORAGE_IMPL.get(bname, location)
+        return STORAGE_IMPL.get(bname, location)
 
     @staticmethod
     def put_blob(user_id, location, blob):
         bname = f"{user_id}-downloads"
-        return  STORAGE_IMPL.put(bname, location, blob)
-
+        return STORAGE_IMPL.put(bname, location, blob)

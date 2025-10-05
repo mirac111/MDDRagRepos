@@ -23,8 +23,13 @@ export const useShowFormDrawer = () => {
 
   const handleShow = useCallback(
     (e: React.MouseEvent<Element>, nodeId: string) => {
+      const tool = get(e.target, 'dataset.tool');
+      // TODO: Operator type judgment should be used
+      if (nodeId.startsWith(Operator.Tool) && !tool) {
+        return;
+      }
       setClickedNodeId(nodeId);
-      setClickedToolId(get(e.target, 'dataset.tool'));
+      setClickedToolId(tool);
       showFormDrawer();
     },
     [setClickedNodeId, setClickedToolId, showFormDrawer],
@@ -56,7 +61,7 @@ export const useShowSingleDebugDrawer = () => {
   };
 };
 
-const ExcludedNodes = [Operator.Note];
+const ExcludedNodes = [Operator.Note, Operator.Placeholder];
 
 export function useShowDrawer({
   drawerVisible,
