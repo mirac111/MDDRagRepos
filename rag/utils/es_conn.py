@@ -69,13 +69,30 @@ class ESConnection(DocStoreConnection):
         logger.info(f"Elasticsearch {settings.ES['hosts']} is healthy.")
 
     def _connect(self):
+        import os
+        
+        # Get certificate paths (same location as MinIO certificates)
+        scriptDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        certFile = os.path.join(scriptDir, 'certs', 'public.crt')
+        keyFile = os.path.join(scriptDir, 'certs', 'private.key')
+        
+        logging.info(f"Elasticsearch: Looking for certificates at: {certFile}")
+        
+        if not (os.path.exists(certFile) and os.path.exists(keyFile)):
+            raise Exception(f"Production certificates not found! Cert: {certFile}, Key: {keyFile}")
+        
+        logging.info(f"Elasticsearch: Using PRODUCTION certificates: {certFile}")
+        
         self.es = Elasticsearch(
             settings.ES["hosts"].split(","),
-            basic_auth=(settings.ES["username"], settings.ES[
-                "password"]) if "username" in settings.ES and "password" in settings.ES else None,
-            verify_certs=False,
+            basic_auth=(settings.ES["username"], settings.ES["password"]) if "username" in settings.ES and "password" in settings.ES else None,
+            verify_certs=True,        # ✅ ENABLE certificate verification
+            ca_certs=certFile,        # ✅ Use your certificate for verification
             timeout=600
         )
+        
+        logging.info("Elasticsearch: PRODUCTION SSL connection established")
+        
         if self.es:
             self.info = self.es.info()
             return True

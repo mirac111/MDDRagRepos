@@ -66,7 +66,7 @@ from rag.utils.storage_factory import STORAGE_IMPL
 from graphrag.utils import chat_limiter
 
 BATCH_SIZE = 64
-
+ 
 FACTORY = {
     "general": naive,
     ParserType.NAIVE.value: naive,
@@ -83,7 +83,8 @@ FACTORY = {
     ParserType.AUDIO.value: audio,
     ParserType.EMAIL.value: email,
     ParserType.KG.value: naive,
-    ParserType.TAG.value: tag
+    ParserType.TAG.value: tag,
+    ParserType.DELPHI.value: naive
 }
 
 UNACKED_ITERATOR = None

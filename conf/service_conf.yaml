@@ -1,11 +1,12 @@
 ragflow:
   host: 0.0.0.0
-  http_port: 9380
+  http_port: 19380
 mysql:
   name: 'rag_flow'
   user: 'root'
   password: '1111'
-  host: 'localhost'
+  #host: 'localhost'
+  host: '78.188.28.81' #work
   port: 3306
   max_connections: 900
   stale_timeout: 300
@@ -13,9 +14,13 @@ mysql:
 minio:
   user: 'rag_flow'
   password: 'infini_rag_flow'
-  host: 'localhost:9000'
+  #host: 'ai-storage.diagnosis-genie.uk:9000' #home
+  host: 'storage.diagnosis-genie.uk:9000'   #work
+  #host: 'localhost:9000'
 es:
-  hosts: 'http://localhost:9200'
+  #hosts: 'https://ai-es.diagnosis-genie.uk:9200' #home
+  hosts: 'https://es.diagnosis-genie.uk:9200'   #work
+  #hosts: 'http://localhost:9200'
   username: 'elastic'
   password: 'infini_rag_flow'
 os:

@@ -32,7 +32,7 @@ from deepdoc.parser import DocxParser, ExcelParser, HtmlParser, JsonParser, Mark
 from deepdoc.parser.figure_parser import VisionFigureParser, vision_figure_parser_figure_data_wrapper
 from deepdoc.parser.pdf_parser import PlainParser, VisionParser
 from rag.nlp import concat_img, find_codec, naive_merge, naive_merge_with_images, naive_merge_docx, rag_tokenizer, tokenize_chunks, tokenize_chunks_with_images, tokenize_table
-
+from deepdoc.parser.delphi_parser import RAGFlowDelphiParser
 
 class Docx(DocxParser):
     def __init__(self):
@@ -522,9 +522,16 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
             logging.warning(f"tika.parser got empty content from {filename}.")
             return []
 
+    elif re.search(r"\.(pas|dfm|dpr|dpk|inc)$", filename, re.IGNORECASE):
+        callback(0.1, "Start to parse Delphi/Pascal file.")
+        delphi_parser = RAGFlowDelphiParser()
+        sections = delphi_parser(filename, binary, callback, **kwargs)
+        callback(0.8, "Finish parsing Delphi/Pascal file.")
+
     else:
         raise NotImplementedError(
             "file type not supported yet(pdf, xlsx, doc, docx, txt supported)")
+
 
     st = timer()
     if section_images:

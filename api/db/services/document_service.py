@@ -740,7 +740,8 @@ def doc_upload_and_parse(conversation_id, file_objs, user_id):
         ParserType.PRESENTATION.value: presentation,
         ParserType.PICTURE.value: picture,
         ParserType.AUDIO.value: audio,
-        ParserType.EMAIL.value: email
+        ParserType.EMAIL.value: email,
+        ParserType.DELPHI.value: delphi
     }
     parser_config = {"chunk_token_num": 4096, "delimiter": "\n!?;:", "layout_recognize": "DeepDOC"}
     exe = ThreadPoolExecutor(max_workers=12)

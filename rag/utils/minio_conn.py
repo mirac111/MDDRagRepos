@@ -16,6 +16,9 @@
 
 import logging
 import time
+import urllib3  # ADD THIS
+import ssl      # ADD THIS  
+import os       # ADD THIS
 from minio import Minio
 from minio.error import S3Error
 from io import BytesIO
@@ -37,11 +40,55 @@ class RAGFlowMinio:
             pass
 
         try:
+            scriptDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            clientCertFile = os.path.join(scriptDir, 'certs', 'public.crt')
+            clientKeyFile = os.path.join(scriptDir, 'certs', 'private.key')
+            serverCertFile = os.path.join(scriptDir, 'certs', 'server-cert.pem')
+            
+            logging.info(f"Looking for client certificates at: {clientCertFile}")
+            logging.info(f"Looking for server certificate at: {serverCertFile}")
+            
+            # FORCE: Both client and server certificates must exist
+            if not os.path.exists(clientCertFile):
+                raise Exception(f"REQUIRED: Client certificate not found: {clientCertFile}")
+            if not os.path.exists(clientKeyFile):
+                raise Exception(f"REQUIRED: Client private key not found: {clientKeyFile}")
+            if not os.path.exists(serverCertFile):
+                raise Exception(f"REQUIRED: Server certificate not found: {serverCertFile}")
+            
+            # Create SSL context
+            sslContext = ssl.create_default_context()
+            
+            # STEP 1: Load client certificate for authentication
+            logging.info(f"Loading client certificate: {clientCertFile}")
+            sslContext.load_cert_chain(clientCertFile, clientKeyFile)
+            
+            # STEP 2: Load server certificate for verification
+            logging.info(f"Loading server certificate for verification: {serverCertFile}")
+            sslContext.load_verify_locations(serverCertFile)
+            
+            # STEP 3: Enable STRICT server certificate verification
+            sslContext.check_hostname = True           # Verify hostname matches certificate
+            sslContext.verify_mode = ssl.CERT_REQUIRED # Require valid server certificate
+            
+            # STEP 4: Create HTTP client with strict verification
+            httpClient = urllib3.PoolManager(
+                ssl_context=sslContext,
+                cert_reqs='CERT_REQUIRED'  # Server MUST have valid certificate
+            )
+            
+            logging.info("MinIO: PRODUCTION MODE - Using BOTH client authentication AND server verification")
+            
+            # STEP 5: Create MinIO connection
             self.conn = Minio(settings.MINIO["host"],
-                              access_key=settings.MINIO["user"],
-                              secret_key=settings.MINIO["password"],
-                              secure=False
-                              )
+                            access_key=settings.MINIO["user"],
+                            secret_key=settings.MINIO["password"],
+                            secure=True,
+                            http_client=httpClient
+                            )
+            
+            logging.info(f"MinIO PRODUCTION connection established: {settings.MINIO['host']}")
+            
         except Exception:
             logging.exception(
                 "Fail to connect %s " % settings.MINIO["host"])

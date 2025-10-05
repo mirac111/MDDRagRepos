@@ -456,6 +456,8 @@ def upload():
             doc["parser_id"] = ParserType.PRESENTATION.value
         if re.search(r"\.(eml)$", filename):
             doc["parser_id"] = ParserType.EMAIL.value
+        if re.search(r"\.(pas|dfm|dpr|dpk|inc)$", filename):
+            doc["parser_id"] = ParserType.DELPHI.value
 
         doc_result = DocumentService.insert(doc)
         FileService.add_file_from_kb(doc, kb_folder["id"], kb.tenant_id)
