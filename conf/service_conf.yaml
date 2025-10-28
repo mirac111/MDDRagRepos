@@ -1,10 +1,11 @@
 ragflow:
   host: 0.0.0.0
-  http_port: 19380
+  http_port: 9380
+  #http_port: 19380
 mysql:
   name: 'rag_flow'
-  user: 'root'
-  password: '1111'
+  user: 'miraaa'
+  password: 'Sasdascm..345345!!'
   #host: 'localhost'
   host: '78.188.28.81' #work
   port: 3306

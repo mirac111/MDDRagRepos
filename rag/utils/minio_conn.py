@@ -72,11 +72,15 @@ class RAGFlowMinio:
             sslContext.verify_mode = ssl.CERT_REQUIRED # Require valid server certificate
             
             # STEP 4: Create HTTP client with strict verification
+            poolSize = int(os.environ.get('MAX_CONCURRENT_MINIO', '10'))
             httpClient = urllib3.PoolManager(
                 ssl_context=sslContext,
-                cert_reqs='CERT_REQUIRED'  # Server MUST have valid certificate
+                cert_reqs='CERT_REQUIRED',
+                maxsize=poolSize,           # Maximum connections per host
+                num_pools=10,               # Number of connection pools
+                block=False                 # Don't block when pool is full, just create new connection
             )
-            
+            logging.info(f"MinIO: Connection pool configured with maxsize={poolSize}")
             logging.info("MinIO: PRODUCTION MODE - Using BOTH client authentication AND server verification")
             
             # STEP 5: Create MinIO connection
