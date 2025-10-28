@@ -33,7 +33,7 @@ from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.task_service import queue_tasks, TaskService
 from api.db.services.user_service import UserTenantService
 from api import settings
-from api.utils import get_uuid, current_timestamp, datetime_format
+from api.utils import get_uuid
 from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request, \
     generate_confirmation_token
 
@@ -41,6 +41,7 @@ from api.utils.file_utils import filename_type, thumbnail
 from rag.app.tag import label_question
 from rag.prompts.generator import keyword_extraction
 from rag.utils.storage_factory import STORAGE_IMPL
+from common.time_utils import current_timestamp, datetime_format
 
 from api.db.services.canvas_service import UserCanvasService
 from agent.canvas import Canvas
@@ -538,7 +539,7 @@ def list_chunks():
             )
         kb_ids = KnowledgebaseService.get_kb_ids(tenant_id)
 
-        res = settings.retrievaler.chunk_list(doc_id, tenant_id, kb_ids)
+        res = settings.retriever.chunk_list(doc_id, tenant_id, kb_ids)
         res = [
             {
                 "content": res_item["content_with_weight"],
@@ -886,7 +887,7 @@ def retrieval():
         if req.get("keyword", False):
             chat_mdl = LLMBundle(kbs[0].tenant_id, LLMType.CHAT)
             question += keyword_extraction(chat_mdl, question)
-        ranks = settings.retrievaler.retrieval(question, embd_mdl, kbs[0].tenant_id, kb_ids, page, size,
+        ranks = settings.retriever.retrieval(question, embd_mdl, kbs[0].tenant_id, kb_ids, page, size,
                                                similarity_threshold, vector_similarity_weight, top,
                                                doc_ids, rerank_mdl=rerank_mdl, highlight= highlight,
                                                rank_feature=label_question(question, kbs))

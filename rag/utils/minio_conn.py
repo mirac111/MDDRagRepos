@@ -20,6 +20,7 @@ import urllib3  # ADD THIS
 import ssl      # ADD THIS  
 import os       # ADD THIS
 from minio import Minio
+from minio.commonconfig import CopySource
 from minio.error import S3Error
 from io import BytesIO
 from rag import settings
@@ -111,7 +112,7 @@ class RAGFlowMinio:
                                  )
         return r
 
-    def put(self, bucket, fnm, binary):
+    def put(self, bucket, fnm, binary, tenant_id=None):
         for _ in range(3):
             try:
                 if not self.conn.bucket_exists(bucket):
@@ -127,13 +128,13 @@ class RAGFlowMinio:
                 self.__open__()
                 time.sleep(1)
 
-    def rm(self, bucket, fnm):
+    def rm(self, bucket, fnm, tenant_id=None):
         try:
             self.conn.remove_object(bucket, fnm)
         except Exception:
             logging.exception(f"Fail to remove {bucket}/{fnm}:")
 
-    def get(self, bucket, filename):
+    def get(self, bucket, filename, tenant_id=None):
         for _ in range(1):
             try:
                 r = self.conn.get_object(bucket, filename)
@@ -144,7 +145,7 @@ class RAGFlowMinio:
                 time.sleep(1)
         return
 
-    def obj_exist(self, bucket, filename):
+    def obj_exist(self, bucket, filename, tenant_id=None):
         try:
             if not self.conn.bucket_exists(bucket):
                 return False
@@ -172,7 +173,7 @@ class RAGFlowMinio:
             logging.exception(f"bucket_exist {bucket} got exception")
             return False
 
-    def get_presigned_url(self, bucket, fnm, expires):
+    def get_presigned_url(self, bucket, fnm, expires, tenant_id=None):
         for _ in range(10):
             try:
                 return self.conn.get_presigned_url("GET", bucket, fnm, expires)
@@ -192,3 +193,36 @@ class RAGFlowMinio:
         except Exception:
             logging.exception(f"Fail to remove bucket {bucket}")
 
+    def copy(self, src_bucket, src_path, dest_bucket, dest_path):
+        try:
+            if not self.conn.bucket_exists(dest_bucket):
+                self.conn.make_bucket(dest_bucket)
+
+            try:
+                self.conn.stat_object(src_bucket, src_path)
+            except Exception as e:
+                logging.exception(f"Source object not found: {src_bucket}/{src_path}, {e}")
+                return False
+
+            self.conn.copy_object(
+                dest_bucket,
+                dest_path,
+                CopySource(src_bucket, src_path),
+            )
+            return True
+
+        except Exception:
+            logging.exception(f"Fail to copy {src_bucket}/{src_path} -> {dest_bucket}/{dest_path}")
+            return False
+
+    def move(self, src_bucket, src_path, dest_bucket, dest_path):
+        try:
+            if self.copy(src_bucket, src_path, dest_bucket, dest_path):
+                self.rm(src_bucket, src_path)
+                return True
+            else:
+                logging.error(f"Copy failed, move aborted: {src_bucket}/{src_path}")
+                return False
+        except Exception:
+            logging.exception(f"Fail to move {src_bucket}/{src_path} -> {dest_bucket}/{dest_path}")
+            return False

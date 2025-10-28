@@ -457,6 +457,7 @@ class FileService(CommonService):
                     "id": doc_id,
                     "kb_id": kb.id,
                     "parser_id": self.get_parser(filetype, filename, kb.parser_id),
+                    "pipeline_id": kb.pipeline_id,
                     "parser_config": kb.parser_config,
                     "created_by": user_id,
                     "type": filetype,
@@ -474,6 +475,16 @@ class FileService(CommonService):
                 err.append(file.filename + ": " + str(e))
 
         return err, files
+
+    @classmethod
+    @DB.connection_context()
+    def list_all_files_by_parent_id(cls, parent_id):
+        try:
+            files = cls.model.select().where((cls.model.parent_id == parent_id) & (cls.model.id != parent_id))
+            return list(files)
+        except Exception:
+            logging.exception("list_by_parent_id failed")
+            raise RuntimeError("Database error (list_by_parent_id)!")
 
     @staticmethod
     def parse_docs(file_objs, user_id):
@@ -523,7 +534,7 @@ class FileService(CommonService):
             return ParserType.AUDIO.value
         if re.search(r"\.(ppt|pptx|pages)$", filename):
             return ParserType.PRESENTATION.value
-        if re.search(r"\.(eml)$", filename):
+        if re.search(r"\.(msg|eml)$", filename):
             return ParserType.EMAIL.value
         if re.search(r"\.(pas|dfm|dpr|dpk|inc)$", filename):
             return ParserType.DELPHI.value

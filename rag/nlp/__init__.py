@@ -292,6 +292,7 @@ def tokenize_chunks(chunks, doc, eng, pdf_parser=None):
         res.append(d)
     return res
 
+
 def tokenize_chunks_with_images(chunks, doc, eng, images):
     res = []
     # wrap up as es documents
@@ -305,6 +306,7 @@ def tokenize_chunks_with_images(chunks, doc, eng, images):
         tokenize(d, ck, eng)
         res.append(d)
     return res
+
 
 def tokenize_table(tbls, doc, eng, batch_size=10):
     res = []
@@ -457,12 +459,10 @@ def tree_merge(bull, sections, depth):
                 return len(BULLET_PATTERN[bull])+1, text
             else:
                 return len(BULLET_PATTERN[bull])+2, text
-    
     level_set = set()
     lines = []
     for section in sections:
         level, text = get_level(bull, section)
-
         if not text.strip("\n"):
             continue
             
@@ -579,7 +579,9 @@ def naive_merge(sections: str | list, chunk_token_num=128, delimiter="\n。；�
     from deepdoc.parser.pdf_parser import RAGFlowPdfParser
     if not sections:
         return []
-    if isinstance(sections[0], type("")):
+    if isinstance(sections, str):
+        sections = [sections]
+    if isinstance(sections[0], str):
         sections = [(s, "") for s in sections]
     cks = [""]
     tk_nums = [0]
@@ -609,13 +611,13 @@ def naive_merge(sections: str | list, chunk_token_num=128, delimiter="\n。；�
     dels = get_delimiters(delimiter)
     for sec, pos in sections:
         if num_tokens_from_string(sec) < chunk_token_num:
-            add_chunk(sec, pos)
+            add_chunk("\n"+sec, pos)
             continue
         split_sec = re.split(r"(%s)" % dels, sec, flags=re.DOTALL)
         for sub_sec in split_sec:
             if re.match(f"^{dels}$", sub_sec):
                 continue
-            add_chunk(sub_sec, pos)
+            add_chunk("\n"+sub_sec, pos)
 
     return cks
 
@@ -665,13 +667,13 @@ def naive_merge_with_images(texts, images, chunk_token_num=128, delimiter="\n。
             for sub_sec in split_sec:
                 if re.match(f"^{dels}$", sub_sec):
                     continue
-                add_chunk(sub_sec, image, text_pos)
+                add_chunk("\n"+sub_sec, image, text_pos)
         else:
             split_sec = re.split(r"(%s)" % dels, text)
             for sub_sec in split_sec:
                 if re.match(f"^{dels}$", sub_sec):
                     continue
-                add_chunk(sub_sec, image)
+                add_chunk("\n"+sub_sec, image)
 
     return cks, result_images
 
@@ -753,7 +755,7 @@ def naive_merge_docx(sections, chunk_token_num=128, delimiter="\n。；！？"):
         for sub_sec in split_sec:
             if re.match(f"^{dels}$", sub_sec):
                 continue
-            add_chunk(sub_sec, image,"")
+            add_chunk("\n"+sub_sec, image,"")
         line = ""
 
     if line:
@@ -761,7 +763,7 @@ def naive_merge_docx(sections, chunk_token_num=128, delimiter="\n。；！？"):
         for sub_sec in split_sec:
             if re.match(f"^{dels}$", sub_sec):
                 continue
-            add_chunk(sub_sec, image,"")
+            add_chunk("\n"+sub_sec, image,"")
 
     return cks, images
 
@@ -793,8 +795,8 @@ class Node:
     def __init__(self, level, depth=-1, texts=None):
         self.level = level
         self.depth = depth
-        self.texts = texts if texts is not None else []  # 存放内容
-        self.children = []  # 子节点
+        self.texts = texts or []
+        self.children = [] 
 
     def add_child(self, child_node):
         self.children.append(child_node)
@@ -821,35 +823,51 @@ class Node:
         return f"Node(level={self.level}, texts={self.texts}, children={len(self.children)})"
 
     def build_tree(self, lines):
-        stack = [self]  
-        for line in lines:
-            level, text = line
-            node = Node(level=level, texts=[text])
-
-            if level <= self.depth or self.depth == -1:
-                while stack and level <= stack[-1].get_level():
-                    stack.pop()
-
-                stack[-1].add_child(node)
-                stack.append(node)
-            else:
+        stack = [self]
+        for level, text in lines:
+            if self.depth != -1 and level > self.depth:
+                # Beyond target depth: merge content into the current leaf instead of creating deeper nodes
                 stack[-1].add_text(text)
-        return self  
+                continue
+
+            # Move up until we find the proper parent whose level is strictly smaller than current
+            while len(stack) > 1 and level <= stack[-1].get_level():
+                stack.pop()
+
+            node = Node(level=level, texts=[text])
+            # Attach as child of current parent and descend
+            stack[-1].add_child(node)
+            stack.append(node)
+
+        return self
 
     def get_tree(self):
         tree_list = []  
-        self._dfs(self, tree_list, 0, [])
+        self._dfs(self, tree_list, [])
         return tree_list
 
-    def _dfs(self, node, tree_list, current_depth, titles):
+    def _dfs(self, node, tree_list, titles):
+        level = node.get_level()
+        texts = node.get_texts()
+        child = node.get_children()
 
-        if node.get_texts():
-            if 0 < node.get_level() < self.depth:
-                titles.extend(node.get_texts())
-            else:
-                combined_text = ["\n".join(titles + node.get_texts())]
-                tree_list.append(combined_text)
+        if level == 0 and texts:
+            tree_list.append("\n".join(titles+texts))
 
+        # Titles within configured depth are accumulated into the current path
+        if 1 <= level <= self.depth:
+            path_titles = titles + texts
+        else:
+            path_titles = titles
 
-        for child in node.get_children():
-            self._dfs(child, tree_list, current_depth + 1, titles.copy())
+        # Body outside the depth limit becomes its own chunk under the current title path
+        if level > self.depth and texts:
+            tree_list.append("\n".join(path_titles + texts))
+
+        # A leaf title within depth emits its title path as a chunk (header-only section)
+        elif not child and (1 <= level <= self.depth):
+            tree_list.append("\n".join(path_titles))
+        
+        # Recurse into children with the updated title path
+        for c in child:
+            self._dfs(c, tree_list, path_titles)
