@@ -104,6 +104,8 @@ class ParserType(StrEnum):
     EMAIL = "email"
     KG = "knowledge_graph"
     TAG = "tag"
+    SUT = "sut"                   
+    TABLE_SUT = "table_sut"
 
 
 class FileSource(StrEnum):

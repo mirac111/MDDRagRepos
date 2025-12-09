@@ -90,7 +90,6 @@ FACTORY = {
     ParserType.EMAIL.value: email,
     ParserType.KG.value: naive,
     ParserType.TAG.value: tag,
-    ParserType.DELPHI.value: naive,
     "sut": sut,
     "sut_xlsx": table_sut
 }

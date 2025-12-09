@@ -524,12 +524,11 @@ class FileService(CommonService):
     def parse(filename, blob, img_base64=True, tenant_id=None):
         from rag.app import audio, email, naive, picture, presentation
         from api.apps import current_user
-        from deepdoc.parser.delphi_parser import chunk as delphi
 
         def dummy(prog=None, msg=""):
             pass
 
-        FACTORY = {ParserType.PRESENTATION.value: presentation, ParserType.PICTURE.value: picture, ParserType.AUDIO.value: audio, ParserType.EMAIL.value: email, ParserType.DELPHI.value: delphi}
+        FACTORY = {ParserType.PRESENTATION.value: presentation, ParserType.PICTURE.value: picture, ParserType.AUDIO.value: audio, ParserType.EMAIL.value: email}
         parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;:", "layout_recognize": "DeepDOC"}
         kwargs = {"lang": "Turkish", "callback": dummy, "parser_config": parser_config, "from_page": 0, "to_page": 100000, "tenant_id": current_user.id if current_user else tenant_id}
         file_type = filename_type(filename)
@@ -548,8 +547,6 @@ class FileService(CommonService):
             return ParserType.PRESENTATION.value
         if re.search(r"\.(msg|eml)$", filename):
             return ParserType.EMAIL.value
-        if re.search(r"\.(pas|dfm|dpr|dpk|inc)$", filename):
-            return ParserType.DELPHI.value
         return default
 
     @staticmethod

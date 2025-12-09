@@ -24,7 +24,6 @@ from .pdf_parser import PlainParser
 from .pdf_parser import RAGFlowPdfParser as PdfParser
 from .ppt_parser import RAGFlowPptParser as PptParser
 from .txt_parser import RAGFlowTxtParser as TxtParser
-from .delphi_parser import RAGFlowDelphiParser as DelphiParser
 
 __all__ = [
     "PdfParser",
@@ -36,7 +35,6 @@ __all__ = [
     "JsonParser",
     "MarkdownParser",
     "TxtParser",
-    "DelphiParser",
     "MarkdownElementExtractor"
 ]
 

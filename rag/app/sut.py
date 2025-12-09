@@ -4,10 +4,10 @@ from docx import Document
 from typing import List, Dict, Optional
 from io import BytesIO
 
-from api.db import ParserType
+from common.constants import ParserType
 from rag.nlp import rag_tokenizer
 
-
+ 
 class RegexPatterns:
     BOLUM = re.compile(
         r"^(BİRİNCİ|İKİNCİ|ÜÇÜNCÜ|DÖRDÜNCÜ|BEŞİNCİ|ALTINCI|YEDİNCİ|SEKİZİNCİ|DOKUZUNCU|ONUNCU)\s+BÖLÜM$"
