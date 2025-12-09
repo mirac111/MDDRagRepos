@@ -5491,6 +5491,7 @@
             ]
         },
         {
+<<<<<<< HEAD
             "name": "DiagnosisGenie",
             "logo": "",
             "tags": "TEXT EMBEDDING,TEXT RE-RANK",
@@ -5511,6 +5512,14 @@
                     "is_tools": false
                 }
             ]
+=======
+            "name": "MinerU",
+            "logo": "",
+            "tags": "OCR",
+            "status": "1",
+            "rank": "900",
+            "llm": []
+>>>>>>> upstream/main
         }
     ]
 }

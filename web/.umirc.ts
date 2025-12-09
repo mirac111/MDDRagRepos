@@ -45,21 +45,21 @@ export default defineConfig({
       ws: true,
       logger: console,
     },
+    //{
+    //  context: ['/api', '/v1'],
+    //  target: 'https://ai-chat.diagnosis-genie.uk:9380',  // ✅ Changed to HTTPS domain
+    //  changeOrigin: true,
+    //  secure: false,  // ✅ Added this line - allows self-signed certificates
+    //  ws: true,
+    //  logger: console,
+    //},
     {
       context: ['/api', '/v1'],
-      target: 'https://ai-chat.diagnosis-genie.uk:9380',  // ✅ Changed to HTTPS domain
+      target: 'http://127.0.0.1:9380',  // ✅ Changed back to local backend
       changeOrigin: true,
-      secure: false,  // ✅ Added this line - allows self-signed certificates
       ws: true,
       logger: console,
     },
-    //{
-     // context: ['/api', '/v1'],
-      //target: 'http://127.0.0.1:9380',  // ✅ Changed back to local backend
-      //changeOrigin: true,
-      //ws: true,
-      //logger: console,
-    //},
   ],
 
   chainWebpack(memo, args) {
