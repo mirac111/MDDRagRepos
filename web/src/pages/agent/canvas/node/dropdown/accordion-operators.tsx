@@ -21,16 +21,28 @@ function OperatorAccordionTrigger({ children }: PropsWithChildren) {
 export function AccordionOperators({
   isCustomDropdown = false,
   mousePosition,
+  nodeId,
 }: {
   isCustomDropdown?: boolean;
   mousePosition?: { x: number; y: number };
+  nodeId?: string;
 }) {
   const { t } = useTranslation();
+  const { getOperatorTypeFromId, getParentIdById } = useGraphStore(
+    (state) => state,
+  );
+
+  const exitLoopList = useMemo(() => {
+    if (getOperatorTypeFromId(getParentIdById(nodeId)) === Operator.Loop) {
+      return [Operator.ExitLoop];
+    }
+    return [];
+  }, [getOperatorTypeFromId, getParentIdById, nodeId]);
 
   return (
     <Accordion
       type="multiple"
-      className="px-2 text-text-title max-h-[45vh] overflow-auto scrollbar-none"
+      className="px-2 text-text-title max-h-[45vh] overflow-auto"
       defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5']}
     >
       <AccordionItem value="item-1">
@@ -62,6 +74,8 @@ export function AccordionOperators({
             operators={[
               Operator.Switch,
               Operator.Iteration,
+              Operator.Loop,
+              ...exitLoopList,
               Operator.Categorize,
             ]}
             isCustomDropdown={isCustomDropdown}
@@ -75,7 +89,14 @@ export function AccordionOperators({
         </OperatorAccordionTrigger>
         <AccordionContent className="flex flex-col gap-4 text-text-primary">
           <OperatorItemList
-            operators={[Operator.Code, Operator.StringTransform]}
+            operators={[
+              Operator.Code,
+              Operator.StringTransform,
+              Operator.DataOperations,
+              Operator.VariableAssigner,
+              Operator.ListOperations,
+              Operator.VariableAggregator,
+            ]}
             isCustomDropdown={isCustomDropdown}
             mousePosition={mousePosition}
           ></OperatorItemList>

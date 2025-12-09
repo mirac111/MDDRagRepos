@@ -21,7 +21,7 @@ from collections import Counter
 import numpy as np
 from huggingface_hub import snapshot_download
 
-from api.utils.file_utils import get_project_base_directory
+from common.file_utils import get_project_base_directory
 from rag.nlp import rag_tokenizer
 
 from .recognizer import Recognizer
@@ -155,7 +155,7 @@ class TableStructureRecognizer(Recognizer):
         while i < len(boxes):
             if TableStructureRecognizer.is_caption(boxes[i]):
                 if is_english:
-                    cap + " "
+                    cap += " "
                 cap += boxes[i]["text"]
                 boxes.pop(i)
                 i -= 1

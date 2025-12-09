@@ -23,8 +23,8 @@ from minio import Minio
 from minio.commonconfig import CopySource
 from minio.error import S3Error
 from io import BytesIO
-from rag import settings
-from rag.utils import singleton
+from common.decorator import singleton
+from common import settings
 
 
 @singleton
@@ -143,7 +143,7 @@ class RAGFlowMinio:
                 logging.exception(f"Fail to get {bucket}/{filename}")
                 self.__open__()
                 time.sleep(1)
-        return
+        return None
 
     def obj_exist(self, bucket, filename, tenant_id=None):
         try:
@@ -181,7 +181,7 @@ class RAGFlowMinio:
                 logging.exception(f"Fail to get_presigned {bucket}/{fnm}:")
                 self.__open__()
                 time.sleep(1)
-        return
+        return None
 
     def remove_bucket(self, bucket):
         try:
