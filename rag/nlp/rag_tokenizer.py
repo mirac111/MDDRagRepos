@@ -1,4 +1,4 @@
-#
+#C:\Users\mirac\Desktop\mdd\ragflow\rag\nlp\rag_tokenizer.py
 #  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-
+ 
 import logging
 import copy
 import datrie
@@ -25,15 +25,40 @@ import sys
 from hanziconv import HanziConv
 from nltk import word_tokenize
 from nltk.stem import PorterStemmer, WordNetLemmatizer
+import zeyrek 
 from api.utils.file_utils import get_project_base_directory
+import unicodedata
 
+def turkish_lower(text):
+    """Türkçe karakterleri doğru şekilde küçük harfe çevirir"""
+    # Unicode normalization
+    text = unicodedata.normalize('NFC', text)
+    
+    # Türkçe büyük harf → küçük harf
+    text = text.replace('İ', 'i')
+    text = text.replace('I', 'ı')
+    text = text.replace('Ş', 'ş')
+    text = text.replace('Ğ', 'ğ')
+    text = text.replace('Ü', 'ü')
+    text = text.replace('Ö', 'ö')
+    text = text.replace('Ç', 'ç')
+    
+    # Geri kalan için standart lower
+    return text.lower()
+
+def remove_circumflex(text):  
+    """Şapkalı karakterleri kaldırır ve Türkçe-aware lowercase yapar"""
+    text = text.replace('â', 'a').replace('Â', 'a').replace('î', 'i').replace('Î', 'i').replace('û', 'u').replace('Û', 'u').replace('ê', 'e').replace('Ê', 'e').replace('ô', 'o').replace('Ô', 'o')
+    return turkish_lower(text)
 
 class RagTokenizer:
     def key_(self, line):
-        return str(line.lower().encode("utf-8"))[2:-1]
+        #return str(line.lower().encode("utf-8"))[2:-1]
+        return str(turkish_lower(line).encode("utf-8"))[2:-1]
 
     def rkey_(self, line):
-        return str(("DD" + (line[::-1].lower())).encode("utf-8"))[2:-1]
+        #return str(("DD" + (line[::-1].lower())).encode("utf-8"))[2:-1]
+        return str(("DD" + (turkish_lower(line)[::-1])).encode("utf-8"))[2:-1]
 
     def loadDict_(self, fnm):
         logging.info(f"[HUQIE]:Build trie from {fnm}")
@@ -57,7 +82,7 @@ class RagTokenizer:
             of.close()
         except Exception:
             logging.exception(f"[HUQIE]:Build trie {fnm} failed")
-
+ 
     def __init__(self, debug=False):
         self.DEBUG = debug
         self.DENOMINATOR = 1000000
@@ -65,27 +90,75 @@ class RagTokenizer:
 
         self.stemmer = PorterStemmer()
         self.lemmatizer = WordNetLemmatizer()
+        self.turkishAnalyzer = zeyrek.MorphAnalyzer()
+        logging.getLogger('zeyrek').setLevel(logging.ERROR)
 
-        self.SPLIT_CHAR = r"([ ,\.<>/?;:'\[\]\\`!@#$%^&*\(\)\{\}\|_+=《》，。？、；‘’：“”【】~！￥%……（）——-]+|[a-zA-Z0-9,\.-]+)"
+        #self.SPLIT_CHAR = r"([ ,\.<>/?;:'\[\]\\`!@#$%^&*\(\)\{\}\|_+=《》，。？、；‘’：“”【】~！￥%……（）——-]+|[a-zA-Z0-9,\.-]+)"
+        #self.SPLIT_CHAR = r"([ ,\.<>/?;:'\[\]\\`!@#$%^&*\(\)\{\}\|_+=《》，。？、；‘’：“”【】~！￥%……（）——-]+|[a-zA-ZğüşıöçĞÜŞİÖÇ0-9,\.-]+)"
+        self.SPLIT_CHAR = r"([ ,\.<>/?;:'\[\]\\`!@#$%^&*\(\)\{\}\|_+=《》，。？、；''：""【】~！￥%……（）——-]+|[a-zA-ZğüşıöçĞÜŞİÖÇı0-9,\.-]+)"
 
-        trie_file_name = self.DIR_ + ".txt.trie"
-        # check if trie file existence
-        if os.path.exists(trie_file_name):
-            try:
+        self.turkishCommonShortWords = {
+            # Conjunctions and prepositions
+            'bir', 've', 'veya', 'ya', 'ile', 'için', 'gibi', 'hem', 'de', 'da', 'ki',
+            # Question particles
+            'mi', 'mı', 'mu', 'mü',
+            # Demonstrative pronouns
+            'bu', 'şu', 'o',
+            # Common short nouns
+            'an', 'el', 'su', 'iş', 'gün', 'ay', 'yıl', 'ek', 'ad', 'kol', 'gül',
+            'dil', 'tür', 'iç', 'dış', 'üst', 'alt', 'orta', 'ön', 'arka', 'yan',
+            # Common short verbs
+            'al', 'ver', 'gel', 'git', 'gör', 'bil', 'ol',
+            # Other common words
+            'ne', 'nasıl', 'kim', 'nerede', 'var', 'yok', 'çok', 'az',
+            'ama', 'fakat', 'ancak', 'ise', 'dahi', 'bile', 'sadece', 'yalnız',
+            # Medical/SUT specific terms
+            'kod', 'sut', 'sgk', 'tüp', 'ilaç', 'doz', 'mg', 'ml', 'gr',
+        }
+
+        # ======================================================================
+        # CHINESE DICTIONARY DISABLED FOR TURKISH/ENGLISH USAGE
+        # ======================================================================
+        # The huqie.txt dictionary contains 600,000 Chinese words which are
+        # not useful for Turkish/English tokenization. This Trie is only used
+        # for Chinese word segmentation and frequency lookup.
+        #
+        # For Turkish tokenization, we rely on:
+        # - Zeyrek MorphAnalyzer for Turkish lemmatization
+        # - NLTK for English tokenization  
+        # - Custom Turkish stopword list for disambiguation
+        #
+        # Benefits of disabling:
+        # - Faster initialization (~2-3 seconds saved)
+        # - Less memory usage (~50MB saved)
+        # - No unnecessary Chinese word merging operations
+        # ======================================================================
+
+        # Create empty Trie (required by freq() and merge_() methods)
+
+        # Create empty Trie (required by freq() and merge_() methods)
+        self.trie_ = datrie.Trie(string.printable)
+
+        # DISABLED: Chinese dictionary loading (600K words)
+        #trie_file_name = self.DIR_ + ".txt.trie"
+        
+        # DISABLED: Chinese dictionary loading (600K words)
+        #if os.path.exists(trie_file_name):
+            #try:
                 # load trie from file
-                self.trie_ = datrie.Trie.load(trie_file_name)
-                return
-            except Exception:
+                #self.trie_ = datrie.Trie.load(trie_file_name)
+                #return
+            #except Exception:
                 # fail to load trie from file, build default trie
-                logging.exception(f"[HUQIE]:Fail to load trie file {trie_file_name}, build the default trie file")
-                self.trie_ = datrie.Trie(string.printable)
-        else:
+                #logging.exception(f"[HUQIE]:Fail to load trie file {trie_file_name}, build the default trie file")
+                #self.trie_ = datrie.Trie(string.printable)
+        #else:
             # file not exist, build default trie
-            logging.info(f"[HUQIE]:Trie file {trie_file_name} not found, build the default trie file")
-            self.trie_ = datrie.Trie(string.printable)
+            #logging.info(f"[HUQIE]:Trie file {trie_file_name} not found, build the default trie file")
+            #self.trie_ = datrie.Trie(string.printable)
 
         # load data from dict file and save to trie file
-        self.loadDict_(self.DIR_ + ".txt")
+        #self.loadDict_(self.DIR_ + ".txt")
 
     def loadUserDict(self, fnm):
         try:
@@ -229,7 +302,23 @@ class RagTokenizer:
         return sorted(res, key=lambda x: x[1], reverse=True)
 
     def merge_(self, tks):
-        # if split chars is part of token
+        """
+        Merge tokens based on dictionary frequency.
+        
+        SIMPLIFIED FOR TURKISH/ENGLISH:
+        Since we don't use the Chinese dictionary (huqie.txt),
+        this function now simply normalizes whitespace without
+        performing any dictionary-based merging.
+        
+        Original purpose: Merge Chinese characters into words
+        using frequency information from the Trie dictionary.
+        """
+        # Simply normalize multiple spaces to single space
+        tks = re.sub(r"[ ]+", " ", tks).strip()
+        return tks
+
+    """
+    def merge_(self, tks):
         res = []
         tks = re.sub(r"[ ]+", " ", tks).split()
         s = 0
@@ -237,14 +326,19 @@ class RagTokenizer:
             if s >= len(tks):
                 break
             E = s + 1
-            for e in range(s + 2, min(len(tks) + 2, s + 6)):
-                tk = "".join(tks[s:e])
-                if re.search(self.SPLIT_CHAR, tk) and self.freq(tk):
-                    E = e
+            
+            # ✅ EKLE: Eğer sayıysa birleştirmeyi atla
+            if not re.match(r"^[0-9]+$", tks[s]):
+                for e in range(s + 2, min(len(tks) + 2, s + 6)):
+                    tk = "".join(tks[s:e])
+                    if re.search(self.SPLIT_CHAR, tk) and self.freq(tk):
+                        E = e
+            
             res.append("".join(tks[s:E]))
             s = E
 
         return " ".join(res)
+    """
 
     def maxForward_(self, line):
         res = []
@@ -320,18 +414,66 @@ class RagTokenizer:
         return txt_lang_pairs
 
     def tokenize(self, line):
-        line = re.sub(r"\W+", " ", line)
-        line = self._strQ2B(line).lower()
-        line = self._tradi2simp(line)
+        line = unicodedata.normalize('NFC', line)  
+        #line = line.lower()
+        line = turkish_lower(line)
+        line = re.sub(r'(\d{3})[.,](\d{3})\b', r'\1\2', line)
+        line = re.sub(r"[^\w\sğüşıöçĞÜŞİÖÇı]+", " ", line, flags=re.UNICODE)
 
         arr = self._split_by_lang(line)
         res = []
         for L,lang in arr:
             if not lang:
-                res.extend([self.stemmer.stem(self.lemmatizer.lemmatize(t)) for t in word_tokenize(L)])
+                #res.extend([self.stemmer.stem(self.lemmatizer.lemmatize(t)) for t in word_tokenize(L)])
+                tokens = word_tokenize(L)
+                for t in tokens:
+                    if t.strip():
+                        lemmas = self.turkishAnalyzer.lemmatize(t)
+                        if lemmas:
+                            """
+                            allLemmas = lemmas[0][1]
+                            # En uzun lemmayı seç (genelde daha doğru)
+                            selectedLemma = max(allLemmas, key=len)
+                            print(f"    [LEMMA] Selected: '{selectedLemma}' -> lower: '{selectedLemma.lower()}'")  
+                            # Küçük harfe çevir
+                            res.append(selectedLemma.lower())
+                            """
+                            allLemmas = lemmas[0][1]
+                            
+                            # ===== LEMMA SELECTION STRATEGY =====
+                            # 1. Common short words: Use shortest lemma (e.g., "ek" not "ekmek")
+                            # 2. Other short words (≤3 chars): Use shortest lemma
+                            # 3. Long words (>3 chars): Use longest lemma (most complete stem)
+                            #    - Turkish stems are typically longer and more meaningful
+                            #    - Examples: "kur"<"kurum" → "kurum" is correct
+                            #                "sır"<"sıra" → "sıra" is correct
+                            
+                            if t.lower() in self.turkishCommonShortWords:
+                                # Strategy 1: Common short word list
+                                #selectedLemma = min(allLemmas, key=len)
+                                selectedLemma = t
+                            elif len(t) <= 3:
+                                # Strategy 2: Short word (≤3 chars)
+                                #selectedLemma = min(allLemmas, key=len)
+                                    if t in allLemmas:
+                                        selectedLemma = t
+                                    else:
+                                        selectedLemma = min(allLemmas, key=len)
+                            else:
+                                # Strategy 3: Long word - use LONGEST lemma
+                                selectedLemma = max(allLemmas, key=len)
+                            
+                            #res.append(selectedLemma.lower())
+                            res.append(remove_circumflex(selectedLemma))
+                        else:
+                            #fallback = self.stemmer.stem(self.lemmatizer.lemmatize(t))
+                            # Zeyrek lemma bulamadı - Porter Stemmer kullanma (İngilizce için tasarlandı)
+                            # Bunun yerine orijinal kelimeyi lowercase olarak kullan
+                            fallback = remove_circumflex(t)
+                            res.append(fallback)
                 continue
-            if len(L) < 2 or re.match(
-                    r"[a-z\.-]+$", L) or re.match(r"[0-9\.-]+$", L):
+
+            if len(L) < 2 or re.match(r"[a-z\.-]+$", L) or re.match(r"[0-9\.-]+$", L):
                 res.append(L)
                 continue
 
@@ -388,8 +530,9 @@ class RagTokenizer:
                 res.append(" ".join(self.sortTks_(tkslist)[0][0]))
 
         res = " ".join(res)
-        logging.debug("[TKS] {}".format(self.merge_(res)))
-        return self.merge_(res)
+        merged = self.merge_(res)
+
+        return merged
 
     def fine_grained_tokenize(self, tks):
         tks = tks.split()
@@ -514,3 +657,4 @@ if __name__ == '__main__':
             break
         logging.info(tknzr.tokenize(line))
     of.close()
+ 

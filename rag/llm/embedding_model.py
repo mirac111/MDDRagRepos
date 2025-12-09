@@ -890,3 +890,32 @@ class DeerAPIEmbed(OpenAIEmbed):
         if not base_url:
             base_url = "https://api.deerapi.com/v1"
         super().__init__(key, model_name, base_url)
+
+class DiagnosisGenieEmbed(Base):
+    _FACTORY_NAME = "DiagnosisGenie"
+
+    def __init__(self, key, model_name, base_url="https://embedding.diagnosis-genie.uk:6742"):
+        self.base_url = base_url if base_url else "https://embedding.diagnosis-genie.uk:6742"
+        self.headers = {"Content-Type": "application/json"}
+        self.model_name = model_name
+
+    def encode(self, texts: list):
+        texts = [truncate(t, 8192) for t in texts]
+        batch_size = 25 
+        ress = []
+        token_count = 0
+        for i in range(0, len(texts), batch_size):
+            data = {"texts": texts[i : i + batch_size]}
+            response = requests.post(f"{self.base_url}/embed/batch", headers=self.headers, json=data)
+            try:
+                res = response.json()
+                ress.extend(res["embeddings"])
+                token_count += sum([num_tokens_from_string(text) for text in texts[i : i + batch_size]])
+            except Exception as _e:
+                log_exception(_e, response)
+        return np.array(ress), token_count
+
+    def encode_queries(self, text):
+        embds, cnt = self.encode([text])
+        return np.array(embds[0]), cnt
+

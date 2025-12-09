@@ -47,12 +47,19 @@ export default defineConfig({
     },
     {
       context: ['/api', '/v1'],
-      target: 'http://127.0.0.1:9380/',
+      target: 'https://ai-chat.diagnosis-genie.uk:9380',  // ✅ Changed to HTTPS domain
       changeOrigin: true,
+      secure: false,  // ✅ Added this line - allows self-signed certificates
       ws: true,
       logger: console,
-      // pathRewrite: { '^/v1': '/v1' },
     },
+    //{
+     // context: ['/api', '/v1'],
+      //target: 'http://127.0.0.1:9380',  // ✅ Changed back to local backend
+      //changeOrigin: true,
+      //ws: true,
+      //logger: console,
+    //},
   ],
 
   chainWebpack(memo, args) {

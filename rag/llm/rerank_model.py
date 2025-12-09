@@ -492,3 +492,24 @@ class Ai302Rerank(Base):
         if not base_url:
             base_url = "https://api.302.ai/v1/rerank"
         super().__init__(key, model_name, base_url)
+
+class DiagnosisGenieRerank(Base):
+    _FACTORY_NAME = "DiagnosisGenie"
+
+    def __init__(self, key, model_name, base_url="https://reranking.diagnosis-genie.uk:6743"):
+        self.base_url = base_url if base_url else "https://reranking.diagnosis-genie.uk:6743"
+        self.headers = {"Content-Type": "application/json"} 
+        self.model_name = model_name
+
+    def similarity(self, query: str, texts: list):
+        texts = [truncate(t, 8192) for t in texts]  
+        data = {"query": query, "documents": texts, "topK": len(texts)}  
+        res = requests.post(f"{self.base_url}/rerank", headers=self.headers, json=data).json()
+        rank = np.zeros(len(texts), dtype=float)
+        try:
+            for d in res["results"]:
+                rank[d["index"]] = d["score"]  
+        except Exception as _e:
+            log_exception(_e, res)
+        token_count = sum([num_tokens_from_string(t) for t in texts]) 
+        return rank, token_count
