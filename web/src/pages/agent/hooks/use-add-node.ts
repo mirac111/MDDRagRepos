@@ -186,6 +186,8 @@ export const useInitializeOperatorParams = () => {
       [Operator.Loop]: initialLoopValues,
       [Operator.LoopStart]: {},
       [Operator.ExitLoop]: {},
+      [Operator.PDFGenerator]: {},
+      [Operator.ExcelProcessor]: {},
     };
   }, [llmId]);
 

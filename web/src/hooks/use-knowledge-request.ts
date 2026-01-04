@@ -28,7 +28,7 @@ import {
 } from '@tanstack/react-query';
 import { useDebounce } from 'ahooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'umi';
+import { useParams, useSearchParams } from 'react-router';
 import {
   useGetPaginationWithRouter,
   useHandleSearchChange,
@@ -75,6 +75,7 @@ export const useTestRetrieval = () => {
       page,
       size: pageSize,
       doc_ids: filterValue.doc_ids,
+      highlight: true,
     };
   }, [filterValue, knowledgeBaseId, page, pageSize, values]);
 

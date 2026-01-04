@@ -7,7 +7,6 @@ import {
 import {
   IAttachment,
   IEventList,
-  IInputEvent,
   IMessageEndData,
   IMessageEndEvent,
   IMessageEvent,
@@ -27,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useParams } from 'umi';
+import { useParams } from 'react-router';
 import { v4 as uuid } from 'uuid';
 import { BeginId } from '../constant';
 import { AgentChatLogContext } from '../context';
@@ -93,7 +92,7 @@ export function findMessageFromList(eventList: IEventList) {
 export function findInputFromList(eventList: IEventList) {
   const inputEvent = eventList.find(
     (x) => x.event === MessageEventType.UserInputs,
-  ) as IInputEvent;
+  );
 
   if (!inputEvent) {
     return {};
@@ -327,7 +326,7 @@ export const useSendAgentMessage = ({
     async (body: { id?: string; inputs: Record<string, BeginQuery> }) => {
       addNewestOneQuestion({
         content: Object.entries(body.inputs)
-          .map(([key, val]) => `${key}: ${val.value}`)
+          .map(([, val]) => `${val.name}: ${val.value}`)
           .join('<br/>'),
         role: MessageType.User,
       });

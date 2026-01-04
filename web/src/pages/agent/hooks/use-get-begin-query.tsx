@@ -314,10 +314,11 @@ export function useFilterQueryVariableOptionsByTypes({
                     ? toLower(y.type).includes(toLower(x))
                     : toLower(y.type) === toLower(x),
                 ) ||
+                // agent structured output
                 isAgentStructured(
                   y.value,
                   y.value.slice(-AgentStructuredOutputField.length),
-                ), // agent structured output
+                ),
             ),
           };
         })
