@@ -156,14 +156,14 @@ class CodeExec(ToolBase, ABC):
                 return
 
             self.set_output("_ERROR", "construct code request error: " + str(e))
-
+ 
         try:
             if self.check_if_canceled("CodeExec execution"):
                 return "Task has been canceled"
 
-            resp = requests.post(url=f"http://{settings.SANDBOX_HOST}:9385/run", json=code_req, timeout=int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10 * 60)))
-            logging.info(f"http://{settings.SANDBOX_HOST}:9385/run,  code_req: {code_req}, resp.status_code {resp.status_code}:")
-
+            resp = requests.post(url=f"https://{settings.SANDBOX_HOST}/run", json=code_req, timeout=int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10 * 60)), verify=False)
+            logging.info(f"https://{settings.SANDBOX_HOST}/run,  code_req: {code_req}, resp.status_code {resp.status_code}:")
+ 
             if self.check_if_canceled("CodeExec execution"):
                 return "Task has been canceled"
 
@@ -177,7 +177,7 @@ class CodeExec(ToolBase, ABC):
                     return
                 raw_stdout = body.get("stdout", "")
                 parsed_stdout = self._deserialize_stdout(raw_stdout)
-                logging.info(f"[CodeExec]: http://{settings.SANDBOX_HOST}:9385/run -> {parsed_stdout}")
+                logging.info(f"[CodeExec]: https://{settings.SANDBOX_HOST}/run -> {parsed_stdout}")
                 self._populate_outputs(parsed_stdout, raw_stdout)
             else:
                 self.set_output("_ERROR", "There is no response from sandbox")

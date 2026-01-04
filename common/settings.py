@@ -88,7 +88,7 @@ REGISTER_ENABLED = 1
 
 
 # sandbox-executor-manager
-SANDBOX_HOST = None
+SANDBOX_HOST = "rag-sandbox.diagnosis-genie.uk:9385"
 STRONG_TEST_COUNT = int(os.environ.get("STRONG_TEST_COUNT", "8"))
 
 SMTP_CONF = None
@@ -277,9 +277,9 @@ def init_settings():
 
     kg_retriever = kg_search.KGSearch(docStoreConn)
 
-    global SANDBOX_HOST
-    if int(os.environ.get("SANDBOX_ENABLED", "0")):
-        SANDBOX_HOST = os.environ.get("SANDBOX_HOST", "sandbox-executor-manager")
+    #global SANDBOX_HOST
+    #if int(os.environ.get("SANDBOX_ENABLED", "0")):
+    #    SANDBOX_HOST = os.environ.get("SANDBOX_HOST", "sandbox-executor-manager")
 
     global SMTP_CONF
     SMTP_CONF = get_base_config("smtp", {})

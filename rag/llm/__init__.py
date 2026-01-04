@@ -33,7 +33,7 @@ class SupportedLiteLLMProvider(StrEnum):
     Cohere = "Cohere"
     Gemini = "Gemini"
     DeepSeek = "DeepSeek"
-    Nvidia = "NVIDIA"
+    Nvidia = "NVIDIA" 
     TogetherAI = "TogetherAI"
     Anthropic = "Anthropic"
     Ollama = "Ollama"

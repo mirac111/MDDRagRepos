@@ -120,10 +120,15 @@ export const useSelectParserList = (): Array<{
 
   const parserList = useMemo(() => {
     const parserArray: Array<string> = tenantInfo?.parser_ids?.split(',') ?? [];
-    return parserArray.map((x) => {
+    const parsedList = parserArray.map((x) => {
       const arr = x.split(':');
       return { value: arr[0], label: arr[1] };
     });
+    parsedList.push({ value: 'sut', label: 'SUT' });
+    parsedList.push({ value: 'table_sut', label: 'Table SUT' });
+    parsedList.push({ value: 'fi_sut', label: 'FI SUT' });
+    
+    return parsedList;
   }, [tenantInfo]);
 
   return parserList;

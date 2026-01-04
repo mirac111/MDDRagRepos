@@ -97,10 +97,17 @@ function useAddGroupNode() {
       newNode.width = 500;
       newNode.height = 250;
 
-      const startNode: Node<any> =
+      const startNodeTemplate =
         GroupStartNodeMap[operatorType as keyof typeof GroupStartNodeMap];
 
-      startNode.parentId = newNode.id;
+      const startNode: Node<any> = {
+        ...startNodeTemplate,
+        id: `${operatorType}Start:${humanId()}`,
+        parentId: newNode.id,
+        data: {
+          ...startNodeTemplate.data,
+        },
+      };
 
       addNode(newNode);
       addNode(startNode);

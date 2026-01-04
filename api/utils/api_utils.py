@@ -358,6 +358,7 @@ def get_parser_config(chunk_method, parser_config):
             "topn_tags": 3,
             "raptor": {
                 "use_raptor": True,
+                "auto_disable_for_structured_data": False,  
                 "prompt": "Please summarize the following paragraphs. Be careful with the numbers, do not make things up. Paragraphs as following:\n      {cluster_content}\nThe above is the content you need to summarize.",
                 "max_token": 256,
                 "threshold": 0.1,

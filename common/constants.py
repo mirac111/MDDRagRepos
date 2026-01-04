@@ -107,6 +107,7 @@ class ParserType(StrEnum):
     TAG = "tag"
     SUT = "sut"                   
     TABLE_SUT = "table_sut"
+    FI_SUT = "fi_sut"
 
 
 class FileSource(StrEnum):

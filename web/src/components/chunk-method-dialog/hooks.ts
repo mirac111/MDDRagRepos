@@ -1,6 +1,6 @@
 import { useSelectParserList } from '@/hooks/use-user-setting-request';
 import { useCallback, useMemo } from 'react';
-
+ 
 const ParserListMap = new Map([
   [
     ['pdf'],
@@ -15,6 +15,7 @@ const ParserListMap = new Map([
       'one',
       'qa',
       'knowledge_graph',
+      'fi_sut'
     ],
   ],
   [
@@ -28,11 +29,12 @@ const ParserListMap = new Map([
       'qa',
       'manual',
       'knowledge_graph',
+      'sut',
     ],
   ],
   [
     ['xlsx', 'xls'],
-    ['naive', 'qa', 'table', 'one', 'knowledge_graph'],
+    ['naive', 'qa', 'table', 'one', 'knowledge_graph', 'table_sut'],
   ],
   [['ppt', 'pptx'], ['presentation']],
   [

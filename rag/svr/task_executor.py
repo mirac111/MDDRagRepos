@@ -47,7 +47,7 @@ from functools import partial
 from multiprocessing.context import TimeoutError
 from timeit import default_timer as timer
 import signal
-import exceptiongroup
+import exceptiongroup 
 import faulthandler
 import numpy as np
 from peewee import DoesNotExist
@@ -59,7 +59,7 @@ from api.db.services.file2document_service import File2DocumentService
 from common.versions import get_ragflow_version
 from api.db.db_models import close_connection
 from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, \
-    email, tag, sut, table_sut
+    email, tag, sut, table_sut, fi_sut
 from rag.nlp import search, rag_tokenizer, add_positions
 from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
 from common.token_utils import num_tokens_from_string, truncate
@@ -90,8 +90,9 @@ FACTORY = {
     ParserType.EMAIL.value: email,
     ParserType.KG.value: naive,
     ParserType.TAG.value: tag,
-    "sut": sut,
-    "sut_xlsx": table_sut
+    ParserType.TABLE_SUT.value: table_sut,
+    ParserType.SUT.value: sut,
+    ParserType.FI_SUT.value: fi_sut
 }
 
 TASK_TYPE_TO_PIPELINE_TASK_TYPE = {
@@ -752,6 +753,7 @@ async def run_raptor_for_kb(row, kb_parser_config, chat_mdl, embd_mdl, vector_si
         for x, doc_id in enumerate(doc_ids):
             chunks = []
             for d in settings.retriever.chunk_list(doc_id, row["tenant_id"], [str(row["kb_id"])],
+                                                 max_count=100000,
                                                  fields=["content_with_weight", vctr_nm],
                                                  sort_by_position=True):
                 chunks.append((d["content_with_weight"], np.array(d[vctr_nm])))
@@ -761,6 +763,7 @@ async def run_raptor_for_kb(row, kb_parser_config, chat_mdl, embd_mdl, vector_si
         chunks = []
         for doc_id in doc_ids:
             for d in settings.retriever.chunk_list(doc_id, row["tenant_id"], [str(row["kb_id"])],
+                                                 max_count=100000,
                                                  fields=["content_with_weight", vctr_nm],
                                                  sort_by_position=True):
                 chunks.append((d["content_with_weight"], np.array(d[vctr_nm])))
@@ -910,6 +913,7 @@ async def do_handle_task(task):
                 {
                     "raptor": {
                         "use_raptor": True,
+                        "auto_disable_for_structured_data": False,
                         "prompt": "Please summarize the following paragraphs. Be careful with the numbers, do not make things up. Paragraphs as following:\n      {cluster_content}\nThe above is the content you need to summarize.",
                         "max_token": 256,
                         "threshold": 0.1,

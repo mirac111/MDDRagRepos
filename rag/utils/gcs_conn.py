@@ -18,7 +18,7 @@ import time
 import datetime
 from io import BytesIO
 from google.cloud import storage
-from google.api_core.exceptions import NotFound
+#from google.api_core.exceptions import NotFound
 from common.decorator import singleton
 from common import settings
 
@@ -75,9 +75,9 @@ class RAGFlowGCS:
 
                 blob.upload_from_file(BytesIO(binary), content_type='application/octet-stream')
                 return True
-            except NotFound:
-                logging.error(f"Fail to put: Main bucket {self.bucket_name} does not exist.")
-                return False
+            #except NotFound:
+            #    logging.error(f"Fail to put: Main bucket {self.bucket_name} does not exist.")
+            #    return False
             except Exception:
                 logging.exception(f"Fail to put {bucket}/{fnm}:")
                 self.__open__()
@@ -91,8 +91,8 @@ class RAGFlowGCS:
             blob_path = self._get_blob_path(bucket, fnm)
             blob = bucket_obj.blob(blob_path)
             blob.delete()
-        except NotFound:
-            pass
+        #except NotFound:
+        #    pass
         except Exception:
             logging.exception(f"Fail to remove {bucket}/{fnm}:")
 
@@ -104,9 +104,9 @@ class RAGFlowGCS:
                 blob_path = self._get_blob_path(bucket, filename)
                 blob = bucket_obj.blob(blob_path)
                 return blob.download_as_bytes()
-            except NotFound:
-                logging.warning(f"File not found {bucket}/{filename} in {self.bucket_name}")
-                return None
+            #except NotFound:
+            #    logging.warning(f"File not found {bucket}/{filename} in {self.bucket_name}")
+            #    return None
             except Exception:
                 logging.exception(f"Fail to get {bucket}/{filename}")
                 self.__open__()
@@ -187,9 +187,9 @@ class RAGFlowGCS:
             bucket_obj.copy_blob(src_blob, bucket_obj, dest_blob_path)
             return True
 
-        except NotFound:
-            logging.error(f"Copy failed: Main bucket {self.bucket_name} does not exist.")
-            return False
+        #except NotFound:
+        #   logging.error(f"Copy failed: Main bucket {self.bucket_name} does not exist.")
+        #   return False
         except Exception:
             logging.exception(f"Fail to copy {src_bucket}/{src_path} -> {dest_bucket}/{dest_path}")
             return False
