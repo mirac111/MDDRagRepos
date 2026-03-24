@@ -163,7 +163,8 @@ class Agent(LLM, ToolBase):
 
     async def _force_format_to_schema_async(self, text: str, schema_prompt: str) -> str:
         fmt_msgs = [
-            {"role": "system", "content": schema_prompt + "\nIMPORTANT: Output ONLY valid JSON. No markdown, no extra text."},
+            #{"role": "system", "content": schema_prompt + "\nIMPORTANT: Output ONLY valid JSON. No markdown, no extra text."},
+            {"role": "system", "content": schema_prompt + "\nÖNEMLİ: YALNIZCA geçerli JSON çıktısı ver. Markdown veya ekstra metin olmasın."},
             {"role": "user", "content": text},
         ]
         _, fmt_msgs = message_fit_in(fmt_msgs, int(self.chat_mdl.max_length * 0.97))
@@ -172,7 +173,7 @@ class Agent(LLM, ToolBase):
     def _invoke(self, **kwargs):
         return asyncio.run(self._invoke_async(**kwargs))
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 20*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     async def _invoke_async(self, **kwargs):
         if self.check_if_canceled("Agent processing"):
             return
@@ -406,24 +407,40 @@ class Agent(LLM, ToolBase):
                 append_user_content(hist, reflection)
                 self.callback("reflection", {}, str(reflection), elapsed_time=timer()-st)
 
-            except Exception as e:
+            except Exception as e: 
                 logging.exception(msg=f"Wrong JSON argument format in LLM ReAct response: {e}")
                 e = f"\nTool call error, please correct the input parameter of response format and call it again.\n *** Exception ***\n{e}"
                 append_user_content(hist, str(e))
 
         logging.warning( f"Exceed max rounds: {self._param.max_rounds}")
+
+
+#        final_instruction = f"""
+#{user_request}
+#IMPORTANT: You have reached the conversation limit. Based on ALL the information and research you have gathered so far, please provide a DIRECT and COMPREHENSIVE final answer to the original request.
+#Instructions:
+#1. SYNTHESIZE all information collected during this conversation
+#2. Provide a COMPLETE response using existing data - do not suggest additional research
+#3. Structure your response as a FINAL DELIVERABLE, not a plan
+#4. If information is incomplete, state what you found and provide the best analysis possible with available data
+#5. DO NOT mention conversation limits or suggest further steps
+#6. Focus on delivering VALUE with the information already gathered
+#Respond immediately with your final comprehensive answer.
+#        """
+
         final_instruction = f"""
 {user_request}
-IMPORTANT: You have reached the conversation limit. Based on ALL the information and research you have gathered so far, please provide a DIRECT and COMPREHENSIVE final answer to the original request.
-Instructions:
-1. SYNTHESIZE all information collected during this conversation
-2. Provide a COMPLETE response using existing data - do not suggest additional research
-3. Structure your response as a FINAL DELIVERABLE, not a plan
-4. If information is incomplete, state what you found and provide the best analysis possible with available data
-5. DO NOT mention conversation limits or suggest further steps
-6. Focus on delivering VALUE with the information already gathered
-Respond immediately with your final comprehensive answer.
+ÖNEMLİ: Konuşma limitine ulaştın. Şimdiye kadar topladığın TÜM bilgilere dayanarak orijinal isteğe DOĞRUDAN ve KAPSAMLI bir nihai yanıt ver.
+Talimatlar:
+1. Bu konuşma boyunca toplanan tüm bilgileri SENTEZLE
+2. Mevcut verileri kullanarak EKSİKSİZ bir yanıt ver — ek araştırma önerme
+3. Yanıtını bir plan olarak değil, NİHAİ ÇIKTI olarak yapılandır
+4. Bilgi eksikse, ne bulduğunu belirt ve mevcut verilerle en iyi analizi sun
+5. Konuşma limitinden BAHSETME ve sonraki adımları önerme
+6. Halihazırda toplanan bilgilerle DEĞER üretmeye odaklan
+Hemen kapsamlı nihai yanıtını ver.
         """
+
         if self.check_if_canceled("Agent final instruction"):
             return
         append_user_content(hist, final_instruction)

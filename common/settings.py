@@ -93,7 +93,7 @@ REGISTER_ENABLED = 1
 
 # sandbox-executor-manager
 SANDBOX_HOST = "rag-sandbox.diagnosis-genie.uk:9385"
-STRONG_TEST_COUNT = int(os.environ.get("STRONG_TEST_COUNT", "8"))
+STRONG_TEST_COUNT = int(os.environ.get("STRONG_TEST_COUNT", "50"))
 
 SMTP_CONF = None
 MAIL_SERVER = ""

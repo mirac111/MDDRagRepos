@@ -3256,6 +3256,34 @@
             "rank": "990",
             "llm": [
                 {
+                    "llm_name": "claude-opus-4-6",
+                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
+                    "max_tokens": 204800,
+                    "model_type": "chat",
+                    "is_tools": true
+                },
+                {
+                    "llm_name": "claude-sonnet-4-6",
+                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
+                    "max_tokens": 204800,
+                    "model_type": "chat",
+                    "is_tools": true
+                },
+                {
+                    "llm_name": "claude-haiku-4-5-20251001",
+                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
+                    "max_tokens": 204800,
+                    "model_type": "chat",
+                    "is_tools": true
+                },
+                {
+                    "llm_name": "claude-sonnet-4-5-20250929",
+                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
+                    "max_tokens": 204800,
+                    "model_type": "chat",
+                    "is_tools": true
+                },
+                {
                     "llm_name": "claude-opus-4-5-20251101",
                     "tags": "LLM,CHAT,IMAGE2TEXT,200k",
                     "max_tokens": 204800,
@@ -3270,20 +3298,6 @@
                     "is_tools": true
                 },
                 {
-                    "llm_name": "claude-opus-4-20250514",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-sonnet-4-5-20250929",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
                     "llm_name": "claude-sonnet-4-20250514",
                     "tags": "LLM,CHAT,IMAGE2TEXT,200k",
                     "max_tokens": 204800,
@@ -3291,7 +3305,7 @@
                     "is_tools": true
                 },
                 {
-                    "llm_name": "claude-3-7-sonnet-20250219",
+                    "llm_name": "claude-opus-4-20250514",
                     "tags": "LLM,CHAT,IMAGE2TEXT,200k",
                     "max_tokens": 204800,
                     "model_type": "chat",

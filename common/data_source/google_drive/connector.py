@@ -544,7 +544,7 @@ class GoogleDriveConnector(SlimConnectorWithPermSync, CheckpointedConnectorWithP
                 completed_until=0,
                 processed_drive_ids=set(),
             )
-
+ 
         # we've found all users and drives, now time to actually start
         # fetching stuff
         self.logger.info(f"Found {len(all_org_emails)} users to impersonate")

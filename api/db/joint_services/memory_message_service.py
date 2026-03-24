@@ -221,7 +221,7 @@ def init_message_id_sequence():
     message_id_redis_key = "id_generator:memory"
     if REDIS_CONN.exist(message_id_redis_key):
         current_max_id = REDIS_CONN.get(message_id_redis_key)
-        logging.info(f"No need to init message_id sequence, current max id is {current_max_id}.")
+        #logging.info(f"No need to init message_id sequence, current max id is {current_max_id}.")
     else:
         max_id = 1
         exist_memory_list = MemoryService.get_all_memory()

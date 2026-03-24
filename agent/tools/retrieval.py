@@ -45,7 +45,13 @@ class RetrievalParam(ToolParamBase):
             "parameters": {
                 "query": {
                     "type": "string",
-                    "description": "The keywords to search the dataset. The keywords should be the most important words/terms(includes synonyms) from the original request.",
+                    #"description": "The keywords to search the dataset. The keywords should be the most important words/terms(includes synonyms) from the original request.",
+                    "description": (
+                        "SGK Sağlık Uygulama Tebliği veri setinde arama yapmak için Türkçe bir sorgu yaz. "
+                        "Sadece hastanın durumu ve soruyla DOĞRUDAN İLGİLİ SUT madde numaraları, EK liste adları, "
+                        "işlem/ilaç/malzeme kodları ve adları, tanı kodları, branş ve faturalama koşullarını içersin. "
+                        "Tekrar eden veya alakasız kelime yazma. Öz ve anlamlı olsun."
+                    ),
                     "default": "",
                     "required": True
                 }

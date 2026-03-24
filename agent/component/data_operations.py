@@ -54,7 +54,7 @@ class DataOperations(ComponentBase,ABC):
             for k, o in self.get_input_elements_from_text(input_item).items()
         }
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         self.input_objects=[]
         inputs = getattr(self._param, "query", None)

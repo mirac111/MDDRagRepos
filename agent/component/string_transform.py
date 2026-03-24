@@ -61,7 +61,7 @@ class StringTransform(Message, ABC):
             "type": "line"
         } for k, o in self.get_input_elements_from_text(self._param.script).items()}
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         if self.check_if_canceled("StringTransform processing"):
             return

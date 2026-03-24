@@ -41,7 +41,7 @@ class VariableAssignerParam(ComponentParamBase):
 class VariableAssigner(ComponentBase,ABC):
     component_name = "VariableAssigner"
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         if not isinstance(self._param.variables,list):
             return

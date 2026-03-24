@@ -43,8 +43,10 @@ def get_vector(txt, emb_mdl, topk=10, similarity=0.1):
 class MsgTextQuery(QueryBase):
 
     def __init__(self):
+        from rag.utils.redis_conn import REDIS_CONN
         self.tw = term_weight.Dealer()
-        self.syn = synonym.Dealer()
+        #self.syn = synonym.Dealer()
+        self.syn = synonym.Dealer(redis=REDIS_CONN.REDIS if REDIS_CONN.is_alive() else None)
         self.query_fields = [
             "content"
         ]

@@ -505,6 +505,61 @@ class JiekouAIRerank(JinaRerank):
 class DiagnosisGenieRerank(Base):
     _FACTORY_NAME = "DiagnosisGenie"
 
+    #def __init__(self, key, model_name, base_url="http://localhost:6743"):
+    #def __init__(self, key, model_name, base_url="https://rerankbge.diagnosis-genie.uk:6743"):
+    def __init__(self, key, model_name, base_url="http://127.0.0.1:16743"):
+        if not base_url:
+            #base_url = "https://rerankbge.diagnosis-genie.uk:6743"
+            #base_url = "http://localhost:6743"
+            base_url = "http://127.0.0.1:16743"
+        self.base_url = base_url
+        self.model_name = model_name
+        self.headers = {"Content-Type": "application/json"}
+
+    def similarity(self, query: str, texts: list):
+        if not texts:
+            return np.array([]), 0
+            
+        texts = [truncate(t, 8192) for t in texts]
+        payload = {
+            "query": query,
+            "documents": texts,
+            "normalize": True
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/rerank",
+                headers=self.headers,
+                json=payload
+            )
+            response.raise_for_status()
+            res = response.json()
+            
+            rank = np.zeros(len(texts), dtype=float)
+            
+            # Sizin API response format: {"scores": [...], "ranked_indices": [...], "ranked_scores": [...]}
+            if "scores" in res:
+                # Direkt scores kullan (orijinal sırada)
+                rank = np.array(res["scores"])
+            elif "ranked_scores" in res and "ranked_indices" in res:
+                # ranked_indices ve ranked_scores'dan orijinal sırayı oluştur
+                for idx, score in zip(res["ranked_indices"], res["ranked_scores"]):
+                    rank[idx] = score
+            else:
+                raise ValueError("Invalid response format from rerank API")
+            
+            token_count = num_tokens_from_string(query) + sum([num_tokens_from_string(t) for t in texts])
+            return rank, token_count
+            
+        except Exception as _e:
+            log_exception(_e, response if 'response' in locals() else None)
+            raise Exception(f"Error: {response.text if 'response' in locals() else str(_e)}")
+
+"""
+class DiagnosisGenieRerank(Base):
+    _FACTORY_NAME = "DiagnosisGenie"
+
     def __init__(self, key, model_name, base_url="https://reranking.diagnosis-genie.uk:6743"):
         self.base_url = base_url if base_url else "https://reranking.diagnosis-genie.uk:6743"
         self.headers = {"Content-Type": "application/json"} 
@@ -522,3 +577,4 @@ class DiagnosisGenieRerank(Base):
             log_exception(_e, res)
         token_count = sum([num_tokens_from_string(t) for t in texts]) 
         return rank, token_count
+"""

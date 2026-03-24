@@ -97,7 +97,7 @@ Here's description of each category:
 class Categorize(LLM, ABC):
     component_name = "Categorize"
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     async def _invoke_async(self, **kwargs):
         if self.check_if_canceled("Categorize processing"):
             return
@@ -145,7 +145,7 @@ class Categorize(LLM, ABC):
         self.set_output("category_name", max_category)
         self.set_output("_next", cpn_ids)
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         return asyncio.run(self._invoke_async(**kwargs))
 

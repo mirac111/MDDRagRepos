@@ -55,7 +55,7 @@ export default defineConfig({
     //},
     {
       context: ['/api', '/v1'],
-      target: 'http://127.0.0.1:9380',  // ✅ Changed back to local backend
+      target: 'http://127.0.0.1:9380', // ✅ Changed back to local backend
       changeOrigin: true,
       ws: true,
       logger: console,

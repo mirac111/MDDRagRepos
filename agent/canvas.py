@@ -85,7 +85,7 @@ class Graph:
         self.dsl = json.loads(dsl)
         self._tenant_id = tenant_id
         self.task_id = task_id if task_id else get_uuid()
-        self._thread_pool = ThreadPoolExecutor(max_workers=5)
+        self._thread_pool = ThreadPoolExecutor(max_workers=20)
         self.load()
 
     def load(self):
@@ -364,6 +364,11 @@ class Canvas(Graph):
         self.message_id = get_uuid()
         created_at = int(time.time())
         self.add_user_input(kwargs.get("query"))
+        # ======================= CHANGE 1 =======================
+        # Initialize the upstream completion tracker for merge sync.
+        # This dict maps: { downstream_node_id: set of completed upstream node_ids }
+        self._upstream_completion = {}
+        # ===================== END CHANGE 1 =====================
         for k, cpn in self.components.items():
             self.components[k]["obj"].reset(True)
 
@@ -578,6 +583,33 @@ class Canvas(Graph):
                     else:
                         yield _node_finished(cpn_obj)
 
+                # ======================= CHANGE 2 =======================
+                # Replace the old _append_path and _extend_path with
+                # merge-synchronization-aware versions.
+
+                def _is_merge_node(cpn_id):
+                    """Check if a node has multiple upstream connections (merge node)."""
+                    cpn_def = self.get_component(cpn_id)
+                    if not cpn_def:
+                        return False
+                    upstream = cpn_def.get("upstream", [])
+                    return len(upstream) > 1
+
+                def _all_upstreams_completed(cpn_id):
+                    """Check if all upstream branches of a merge node have completed."""
+                    cpn_def = self.get_component(cpn_id)
+                    if not cpn_def:
+                        return True
+                    upstream = set(cpn_def.get("upstream", []))
+                    completed = self._upstream_completion.get(cpn_id, set())
+                    return upstream.issubset(completed)
+ 
+                def _record_upstream_completion(downstream_id, from_cpn_id):
+                    """Record that from_cpn_id has finished for downstream_id."""
+                    if downstream_id not in self._upstream_completion:
+                        self._upstream_completion[downstream_id] = set()
+                    self._upstream_completion[downstream_id].add(from_cpn_id)
+
                 def _append_path(cpn_id):
                     nonlocal other_branch
                     if other_branch:
@@ -586,27 +618,40 @@ class Canvas(Graph):
                         return
                     self.path.append(cpn_id)
 
-                def _extend_path(cpn_ids):
+                def _extend_path(cpn_ids, from_cpn_id=None):
                     nonlocal other_branch
                     if other_branch:
                         return
+                    source = from_cpn_id or self.path[i]
                     for cpn_id in cpn_ids:
-                        _append_path(cpn_id)
+                        if _is_merge_node(cpn_id):
+                            # Record this upstream as completed
+                            _record_upstream_completion(cpn_id, source)
+                            # Only add to path if ALL upstreams are done
+                            if _all_upstreams_completed(cpn_id):
+                                _append_path(cpn_id)
+                            # Otherwise: skip, still waiting for other branches
+                        else:
+                            _append_path(cpn_id)
+                # ===================== END CHANGE 2 =====================
 
+                # ======================= CHANGE 3 =======================
+                # Update all _extend_path call sites to pass from_cpn_id
                 if cpn_obj.component_name.lower() in ("iterationitem","loopitem") and cpn_obj.end():
                     iter = cpn_obj.get_parent()
                     yield _node_finished(iter)
-                    _extend_path(self.get_component(cpn["parent_id"])["downstream"])
+                    _extend_path(self.get_component(cpn["parent_id"])["downstream"], self.path[i])
                 elif cpn_obj.component_name.lower() in ["categorize", "switch"]:
-                    _extend_path(cpn_obj.output("_next"))
+                    _extend_path(cpn_obj.output("_next"), self.path[i])
                 elif cpn_obj.component_name.lower() in ("iteration", "loop"):
                     _append_path(cpn_obj.get_start())
                 elif cpn_obj.component_name.lower() == "exitloop" and cpn_obj.get_parent().component_name.lower() == "loop":
-                    _extend_path(self.get_component(cpn["parent_id"])["downstream"])
+                    _extend_path(self.get_component(cpn["parent_id"])["downstream"], self.path[i])
                 elif not cpn["downstream"] and cpn_obj.get_parent():
                     _append_path(cpn_obj.get_parent().get_start())
                 else:
-                    _extend_path(cpn["downstream"])
+                    _extend_path(cpn["downstream"], self.path[i])
+                # ===================== END CHANGE 3 =====================
 
             if self.error:
                 logging.error(f"Runtime Error: {self.error}")

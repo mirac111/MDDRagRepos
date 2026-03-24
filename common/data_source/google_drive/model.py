@@ -61,7 +61,7 @@ class StageCompletion(BaseModel):
     Optional fields are used for retrieval stages that need more information
     for resuming than just the timestamp of the latest file.
     """
-
+ 
     stage: DriveRetrievalStage
     completed_until: SecondsSinceUnixEpoch
     current_folder_or_drive_id: str | None = None

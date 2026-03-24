@@ -1,12 +1,13 @@
 ragflow:
   host: 0.0.0.0
-  http_port: 9380
-  #http_port: 19380
+  #http_port: 9380
+  http_port: 19380
+  secret_key: '5c91bfb81bba197c4d5ece8066c97d9b85d00461658fef7828c39217e649d80f'
 mysql:
   name: 'rag_flow'
   user: 'miraaa'
   password: 'Sasdascm..345345!!'
-  #host: 'localhost'
+  #host: 'localhost' 
   host: '78.188.28.81' #work
   port: 3306
   max_connections: 900
@@ -24,21 +25,21 @@ es:
   #hosts: 'http://localhost:9200'
   username: 'elastic'
   password: 'infini_rag_flow'
-os:
-  hosts: 'http://localhost:1201'
-  username: 'admin'
-  password: 'infini_rag_flow_OS_01'
-infinity:
-  uri: 'localhost:23817'
-  db_name: 'default_db'
-oceanbase:
-  scheme: 'oceanbase' # set 'mysql' to create connection using mysql config
-  config:
-    db_name: 'test'
-    user: 'root@ragflow'
-    password: 'infini_rag_flow'
-    host: 'localhost'
-    port: 2881
+#os:
+#  hosts: 'http://localhost:1201'
+#  username: 'admin'
+#  password: 'infini_rag_flow_OS_01'
+#infinity:
+#  uri: 'localhost:23817'
+#  db_name: 'default_db'
+#oceanbase:
+#  scheme: 'oceanbase' # set 'mysql' to create connection using mysql config
+#  config:
+#    db_name: 'test'
+#    user: 'root@ragflow'
+#    password: 'infini_rag_flow'
+#    host: 'localhost'
+#    port: 2881
 redis:
   db: 1
   username: ''
@@ -46,11 +47,11 @@ redis:
   host: '172.28.12.201:6379'
 task_executor:
   message_queue_type: 'redis'
-user_default_llm:
-  default_models:
-    embedding_model:
-      api_key: 'xxx'
-      base_url: 'http://localhost:6380'
+#user_default_llm:
+#  default_models:
+#    embedding_model:
+#      api_key: 'xxx'
+#      base_url: 'http://localhost:6380'
 # postgres:
 #   name: 'rag_flow'
 #   user: 'rag_flow'

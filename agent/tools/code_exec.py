@@ -27,6 +27,15 @@ from strenum import StrEnum
 from agent.tools.base import ToolBase, ToolMeta, ToolParamBase
 from common import settings
 from common.connection_utils import timeout
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def _trunc(value, limit=200):
+    s = str(value)
+    if len(s) > limit * 2:
+        return s[:limit] + f"...[{len(s) - limit * 2} chars]..." + s[-limit:]
+    return s
 
 
 class Language(StrEnum):
@@ -126,7 +135,7 @@ module.exports = { main };
 class CodeExec(ToolBase, ABC):
     component_name = "CodeExec"
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10 * 60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30 * 60)))
     def _invoke(self, **kwargs):
         if self.check_if_canceled("CodeExec processing"):
             return
@@ -161,9 +170,12 @@ class CodeExec(ToolBase, ABC):
             if self.check_if_canceled("CodeExec execution"):
                 return "Task has been canceled"
 
-            resp = requests.post(url=f"https://{settings.SANDBOX_HOST}/run", json=code_req, timeout=int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10 * 60)), verify=False)
-            logging.info(f"https://{settings.SANDBOX_HOST}/run,  code_req: {code_req}, resp.status_code {resp.status_code}:")
- 
+            _cert_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'rag', 'certs', 'public.crt')
+            _verify = _cert_file if os.path.exists(_cert_file) else False
+
+            resp = requests.post(url=f"https://{settings.SANDBOX_HOST}/run", json=code_req, timeout=int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10 * 60)), verify=_verify)
+            logging.info(f"https://{settings.SANDBOX_HOST}/run, status: {resp.status_code}, req: {_trunc(code_req)}")
+
             if self.check_if_canceled("CodeExec execution"):
                 return "Task has been canceled"
 
@@ -177,7 +189,7 @@ class CodeExec(ToolBase, ABC):
                     return
                 raw_stdout = body.get("stdout", "")
                 parsed_stdout = self._deserialize_stdout(raw_stdout)
-                logging.info(f"[CodeExec]: https://{settings.SANDBOX_HOST}/run -> {parsed_stdout}")
+                logging.info(f"[CodeExec]: https://{settings.SANDBOX_HOST}/run -> {_trunc(parsed_stdout)}")
                 self._populate_outputs(parsed_stdout, raw_stdout)
             else:
                 self.set_output("_ERROR", "There is no response from sandbox")
@@ -296,7 +308,7 @@ class CodeExec(ToolBase, ABC):
                     continue
                 val = self._get_by_path(parsed_stdout, key)
                 coerced = self._coerce_output_value(val, meta.get("type"))
-                logging.info(f"[CodeExec]: populate dict key='{key}' raw='{val}' coerced='{coerced}'")
+                logging.info(f"[CodeExec]: populate dict key='{key}' val='{_trunc(val, 100)}'")
                 self.set_output(key, coerced)
             return
 
@@ -306,7 +318,7 @@ class CodeExec(ToolBase, ABC):
                     continue
                 val = parsed_stdout[idx] if idx < len(parsed_stdout) else None
                 coerced = self._coerce_output_value(val, meta.get("type"))
-                logging.info(f"[CodeExec]: populate list key='{key}' raw='{val}' coerced='{coerced}'")
+                logging.info(f"[CodeExec]: populate list key='{key}' val='{_trunc(val, 100)}'")
                 self.set_output(key, coerced)
             return
 
@@ -316,7 +328,7 @@ class CodeExec(ToolBase, ABC):
                 continue
             val = default_val if idx == 0 else None
             coerced = self._coerce_output_value(val, meta.get("type"))
-            logging.info(f"[CodeExec]: populate scalar key='{key}' raw='{val}' coerced='{coerced}'")
+            logging.info(f"[CodeExec]: populate scalar key='{key}' val='{_trunc(val, 100)}'")
             self.set_output(key, coerced)
 
     def _get_by_path(self, data, path: str):
@@ -339,5 +351,5 @@ class CodeExec(ToolBase, ABC):
                 return None
             if cur is None:
                 return None
-        logging.info(f"[CodeExec]: resolve path '{path}' -> {cur}")
+        logging.info(f"[CodeExec]: resolve path '{path}' -> {_trunc(cur, 100)}")
         return cur

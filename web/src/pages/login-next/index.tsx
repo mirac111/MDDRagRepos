@@ -12,7 +12,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import Spotlight from '@/components/spotlight';
 import { Button, ButtonLoading } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -28,7 +27,6 @@ import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { BgSvg } from './bg';
 import FlipCard3D from './card';
 import './index.less';
 
@@ -138,6 +136,7 @@ const Login = () => {
 
   return (
     <>
+      {/*
       <Spotlight opcity={0.4} coverage={60} color={'rgb(128, 255, 248)'} />
       <Spotlight
         opcity={0.3}
@@ -152,9 +151,9 @@ const Login = () => {
         X={'90%'}
         Y={'-10%'}
         color={'rgb(128, 255, 248)'}
-      />
+      /> */}
       <div className=" h-[inherit] relative overflow-auto">
-        <BgSvg isPaused={isUserInteracting} />
+        {/*<BgSvg isPaused={isUserInteracting} />*/}
 
         <div className="absolute top-3 flex flex-col items-center mb-12 w-full text-text-primary">
           <div className="flex items-center mb-4 w-full pl-10 pt-10 ">
@@ -325,7 +324,7 @@ const Login = () => {
                     )}
                   </form>
                 </Form>
-
+                {/* 
                 {title === 'login' && registerEnabled && (
                   <div className="mt-10 text-right">
                     <p className="text-text-disabled text-sm">
@@ -339,7 +338,7 @@ const Login = () => {
                       </Button>
                     </p>
                   </div>
-                )}
+                )} */}
                 {title === 'register' && (
                   <div className="mt-10 text-right">
                     <p className="text-text-disabled text-sm">

@@ -96,7 +96,6 @@ class MetadataExtractor:
 class DocxStyleAnalyzer:
     @staticmethod
     def is_strikethrough(run) -> bool:
-        """✅ FIX: None değil bool döndür"""
         try:
             strike = run.font.strike
             double_strike = run.font.double_strike
@@ -107,7 +106,6 @@ class DocxStyleAnalyzer:
     
     @staticmethod
     def is_red(run) -> bool:
-        """✅ FIX: Her zaman bool döndür"""
         try:
             if run.font.color and run.font.color.rgb:
                 rgb = run.font.color.rgb
@@ -119,7 +117,6 @@ class DocxStyleAnalyzer:
     
     @staticmethod
     def has_numbering(paragraph) -> bool:
-        """✅ FIX: Her zaman bool döndür"""
         try:
             if paragraph._element.pPr is None:
                 return False
@@ -184,7 +181,6 @@ class TurkishLetterConverter:
 
 
 class ParagraphSegmentExtractor:
-    """✅ TAM DOĞRU: ragChunkingTest.py'den"""
     
     @staticmethod
     def extract(paragraph, listCounters: dict, document) -> List[Dict]:
@@ -228,7 +224,6 @@ class ParagraphSegmentExtractor:
                 'isRed': DocxStyleAnalyzer.is_red(run)
             })
         
-        # ✅ KRİTİK: Word numbering'i AYRI segment olarak INSERT et
         if hasWordNumbering and segments:
             firstRunStrikethrough = segments[0]['isStrikethrough'] if segments else False
             
@@ -238,7 +233,7 @@ class ParagraphSegmentExtractor:
                 'isRed': False
             })
         
-        # ✅ KRİTİK: TÜM segment'leri döndür (filtreleme YOK!)
+
         return segments
     
     @staticmethod
@@ -264,11 +259,11 @@ class ParagraphSegmentExtractor:
 
 
 class HeaderDetector:
-    """✅ TAM DOĞRU: ragChunkingTest.py'den"""
+
     
     @staticmethod
     def is_toc_line(line: str) -> bool:
-        """✅ FIX: Her zaman bool döndür"""
+
         try:
             return bool(RegexPatterns.TOC.search(line)) or bool('İÇİNDEKİLER' in line.upper())
         except:
@@ -276,7 +271,7 @@ class HeaderDetector:
     
     @staticmethod
     def is_fully_strikethrough(segments: List[Dict]) -> bool:
-        """✅ FIX: Her zaman bool döndür"""
+
         try:
             if not segments:
                 return False
@@ -288,15 +283,15 @@ class HeaderDetector:
     def detect(lineText: str, segments: List[Dict]) -> Optional[Dict]:
         lineText = lineText.strip()
         
-        # ✅ TOC kontrolü
+        # TOC kontrolü
         if not lineText or HeaderDetector.is_toc_line(lineText):
             return None
         
-        # ✅ Tam strikethrough kontrolü
+        # Tam strikethrough kontrolü
         if HeaderDetector.is_fully_strikethrough(segments):
             return None
         
-        # ✅ Strikethrough olmayan segment'leri filtrele
+        # Strikethrough olmayan segment'leri filtrele
         filteredSegments = [seg for seg in segments if not seg.get('isStrikethrough', False)]
         if not filteredSegments:
             return None
@@ -310,11 +305,11 @@ class HeaderDetector:
                 'level': 0
             }
         
-        # ✅ Normalizasyon
+        # Normalizasyon
         lineNormalized = TextCleaner.normalize_dashes(cleanLineText)
         lineNormalized = TextCleaner.normalize_madde_format(lineNormalized)
         
-        # ✅ Virgüllü madde numarası kontrolü (liste değil başlık)
+        # Virgüllü madde numarası kontrolü (liste değil başlık)
         if re.match(r'^\d+\.\s*\d+(?:\.\d+)*(?:\.[A-ZÇĞİÖŞÜa-zçğıöşü])?(?:-\d+)?\s*,', lineNormalized):
             return None
         
@@ -327,7 +322,7 @@ class HeaderDetector:
                 'type': 'MADDE',
                 'number': maddeMatch.group(1),
                 'title': displayText,
-                'fullTitle': maddeTitle,  # ✅ Tam başlık
+                'fullTitle': maddeTitle,  # Tam başlık
                 'level': 1
             }
         
@@ -340,11 +335,11 @@ class HeaderDetector:
                 'type': 'FIKRA',
                 'number': fikraMatch.group(1),
                 'content': displayText,
-                'fullContent': fikraContent,  # ✅ Tam içerik
+                'fullContent': fikraContent,  # Tam içerik
                 'level': 2
             }
         
-        # ✅ Önce numerik bent kontrol et
+        # Önce numerik bent kontrol et
         numerikMatch = RegexPatterns.BENT_NUMERIK.match(cleanLineText)
         if numerikMatch:
             bentContent = TextCleaner.clean_variants(numerikMatch.group(2).strip())
@@ -352,11 +347,11 @@ class HeaderDetector:
             
             return {
                 'type': 'BENT',
-                'subtype': 'NUMERIK',  # ✅ Alt tip
+                'subtype': 'NUMERIK',  # Alt tip
                 'number': numerikMatch.group(1),
                 'format': ')',
                 'content': displayText,
-                'fullContent': bentContent,  # ✅ Tam içerik
+                'fullContent': bentContent,  # Tam içerik
                 'level': 3
             }
         
@@ -371,7 +366,7 @@ class HeaderDetector:
                 'number': bentMatch.group(1),
                 'format': bentMatch.group(2),
                 'content': displayText,
-                'fullContent': bentContent,  # ✅ Tam içerik
+                'fullContent': bentContent,  # Tam içerik
                 'level': 3
             }
         
@@ -385,7 +380,7 @@ class HeaderDetector:
                 'number': altBentMatch.group(1),
                 'format': altBentMatch.group(2) or '',
                 'content': displayText,
-                'fullContent': altBentContent,  # ✅ Tam içerik
+                'fullContent': altBentContent,  # Tam içerik
                 'level': 4
             }
         
@@ -393,7 +388,7 @@ class HeaderDetector:
 
 
 class ContentExtractor:
-    """✅ TAM DOĞRU: ragChunkingTest.py'den"""
+    """TAM DOĞRU: ragChunkingTest.py'den"""
     
     @staticmethod
     def extract_between_headers(allLines: List[Dict], startIdx: int, currentLevel: int, currentHeader: Dict) -> Optional[str]:
@@ -626,7 +621,7 @@ class SutDocx:
 def chunk(filename, binary=None, from_page=0, to_page=100000,
           lang="Turkish", callback=None, **kwargs):
     """
-    ✅ TAM DÜZELTİLMİŞ: ragChunkingTest.py mantığı
+    TAM DÜZELTİLMİŞ: ragChunkingTest.py mantığı
     """
     
     parser_config = kwargs.get("parser_config", {})

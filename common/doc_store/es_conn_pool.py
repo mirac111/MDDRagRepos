@@ -52,17 +52,39 @@ class ElasticSearchConnectionPool:
             raise Exception(msg)
 
     def _connect(self):
+        import os
+        
+        # Get certificate paths
+        scriptDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        certFile = os.path.join(scriptDir, '..', 'rag', 'certs', 'public.crt')
+        keyFile = os.path.join(scriptDir, '..', 'rag', 'certs', 'private.key')
+        
+        logging.info(f"Elasticsearch: Looking for certificates at: {certFile}")
+        
+        # SSL Configuration
+        ssl_config = {}
+        if os.path.exists(certFile) and os.path.exists(keyFile):
+            logging.info(f"Elasticsearch: Using PRODUCTION certificates: {certFile}")
+            ssl_config = {
+                "verify_certs": True,
+                "ca_certs": certFile
+            }
+        else:
+            logging.warning(f"Elasticsearch: Certificates not found, using insecure connection")
+            ssl_config = {"verify_certs": False}
+        
         self.es_conn = Elasticsearch(
             self.ES_CONFIG["hosts"].split(","),
-            basic_auth=(self.ES_CONFIG["username"], self.ES_CONFIG[
-                "password"]) if "username" in self.ES_CONFIG and "password" in self.ES_CONFIG else None,
-            verify_certs= self.ES_CONFIG.get("verify_certs", False),
-            timeout=600 )
+            basic_auth=(self.ES_CONFIG["username"], self.ES_CONFIG["password"]) if "username" in self.ES_CONFIG and "password" in self.ES_CONFIG else None,
+            **ssl_config,
+            timeout=600
+        )
+        
         if self.es_conn:
             self.info = self.es_conn.info()
             return True
         return False
-
+ 
     def get_conn(self):
         return self.es_conn
 

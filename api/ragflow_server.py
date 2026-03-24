@@ -74,23 +74,12 @@ def signal_handler(sig, frame):
 if __name__ == '__main__':
     faulthandler.enable()
     init_root_logger("ragflow_server")
-    logging.info(r"""
-        ____   ___    ______ ______ __
-       / __ \ /   |  / ____// ____// /____  _      __
-      / /_/ // /| | / / __ / /_   / // __ \| | /| / /
-     / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ /
-    /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/
-
-    """)
-    logging.info(
-        f'RAGFlow version: {get_ragflow_version()}'
-    )
-    logging.info(
-        f'project base: {get_project_base_directory()}'
-    )
+    logging.info("rag is running")
+    logging.info(f'rag version: {get_ragflow_version()}')
+    logging.info(f'project base: {get_project_base_directory()}')
     show_configs()
     settings.init_settings()
-    settings.print_rag_settings()
+    #settings.print_rag_settings()
 
     if RAGFLOW_DEBUGPY_LISTEN > 0:
         logging.info(f"debugpy listen on {RAGFLOW_DEBUGPY_LISTEN}")

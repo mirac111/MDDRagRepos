@@ -26,37 +26,26 @@ from common.file_utils import get_project_base_directory
 
 class Dealer:
     def __init__(self):
-        self.stop_words = set(["请问",
-                               "您",
-                               "你",
-                               "我",
-                               "他",
-                               "是",
-                               "的",
-                               "就",
-                               "有",
-                               "于",
-                               "及",
-                               "即",
-                               "在",
-                               "为",
-                               "最",
-                               "有",
-                               "从",
-                               "以",
-                               "了",
-                               "将",
-                               "与",
-                               "吗",
-                               "吧",
-                               "中",
-                               "#",
-                               "什么",
-                               "怎么",
-                               "哪个",
-                               "哪些",
-                               "啥",
-                               "相关"])
+        self.stop_words = set([])
+        """
+        self.stop_words = set([
+            "ve", "veya", "ama", "fakat", "ancak", "lakin", "çünkü", "için",
+            "ile", "gibi", "kadar", "daha", "en", "çok", "az", "pek",
+            
+            "ben", "sen", "o", "biz", "siz", "onlar",
+            "beni", "seni", "onu", "bizi", "sizi", "onları",
+            "benim", "senin", "onun", "bizim", "sizin", "onların",
+            
+            "ne", "nedir", "neden", "niçin", "nasıl", "nerede", "kim", 
+            "hangi", "kaç", "ne zaman", "nereye", "nereden",
+            
+            "mı", "mi", "mu", "mü", "mi", "dir", "dır", "dur", "dür",
+            "tir", "tır", "tur", "tür",
+            
+            "bir", "iki", "üç", "şu", "bu", "o", "şey", "var", "yok",
+            "da", "de", "ta", "te", "ki", "mi"
+        ])
+        """
 
         def load_dict(fnm):
             res = {}
@@ -87,7 +76,10 @@ class Dealer:
         try:
             self.df = load_dict(os.path.join(fnm, "term.freq"))
         except Exception:
-            logging.warning("Load term.freq FAIL!")
+            # term.freq is optional file for term frequency data
+            # System works with default values if file not exists
+            # logging.warning("Load term.freq FAIL!")
+            pass
 
     def pretoken(self, txt, num=False, stpwd=True):
         patt = [
@@ -173,8 +165,24 @@ class Dealer:
                 return 0.01
             if not self.ne or t not in self.ne:
                 return 1
-            m = {"toxic": 2, "func": 1, "corp": 3, "loca": 3, "sch": 3, "stock": 3,
-                 "firstnm": 1}
+            #m = {"toxic": 2, "func": 1, "corp": 3, "loca": 3, "sch": 3, "stock": 3, "firstnm": 1}
+
+            m = {
+                "TANI": 1,
+                "ISLEM": 1,
+                "SUT_KODU": 1,
+                "ODEME_KURALI": 1,
+                "HASTA_STATU": 1,
+                "SIGORTA_DURUMU": 1,
+                "BASVURU_TURU": 1,
+                "TESIS_NITELIK": 1,
+                "BELGE": 1,
+                "ILAC_MALZEME": 1,
+                "BIRIM_ZAMAN": 1,
+                "KURUMSAL": 1
+            }
+
+
             return m[self.ne[t]]
 
         def postag(t):

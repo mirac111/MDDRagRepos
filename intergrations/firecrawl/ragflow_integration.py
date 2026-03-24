@@ -60,11 +60,11 @@ class RAGFlowFirecrawlIntegration:
             
             # Process into RAGFlow documents
             documents = self.processor.process_batch(completed_job.data or [])
-            
+             
             return documents
     
     def get_ui_schema(self) -> Dict[str, Any]:
-        """Get UI schema for RAGFlow integration."""
+        """Get UI schema for RAGFlow integration.""" 
         return FirecrawlUIBuilder.create_ui_schema()
     
     def validate_config(self, config_dict: Dict[str, Any]) -> Dict[str, Any]:

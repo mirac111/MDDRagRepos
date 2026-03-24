@@ -127,7 +127,9 @@ export const useSelectParserList = (): Array<{
     parsedList.push({ value: 'sut', label: 'SUT' });
     parsedList.push({ value: 'table_sut', label: 'Table SUT' });
     parsedList.push({ value: 'fi_sut', label: 'FI SUT' });
-    
+    parsedList.push({ value: 'sut_teblig', label: 'SUT TEBLIG' });
+    parsedList.push({ value: 'ek4g', label: 'EK4G' });
+
     return parsedList;
   }, [tenantInfo]);
 

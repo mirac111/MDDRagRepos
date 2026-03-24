@@ -111,7 +111,7 @@ class ExcelProcessor(ComponentBase, ABC):
                 res[k] = {"name": o.get("name", ""), "type": "object"}
         return res
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         if self.check_if_canceled("ExcelProcessor processing"):
             return

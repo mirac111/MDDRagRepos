@@ -1,13 +1,4 @@
-import { IconFontFill } from '@/components/icon-font';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { useTheme } from '@/components/theme-provider';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Segmented, SegmentedValue } from '@/components/ui/segmented';
 import { LanguageList, LanguageMap, ThemeEnum } from '@/constants/common';
 import { useChangeLanguage } from '@/hooks/logic-hooks';
@@ -15,23 +6,17 @@ import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useNavigateWithFromState } from '@/hooks/route-hook';
 import { useFetchUserInfo } from '@/hooks/use-user-setting-request';
 import { Routes } from '@/routes';
-import { camelCase } from 'lodash';
 import {
-  ChevronDown,
-  CircleHelp,
   Cpu,
   File,
   House,
   Library,
   MessageSquareText,
-  Moon,
   Search,
-  Sun,
 } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
-import { BellButton } from './bell-button';
 
 const handleDocHelpCLick = () => {
   window.open('https://ragflow.io/docs/dev/category/guides', 'target');
@@ -146,6 +131,7 @@ export function Header() {
         onChange={handleChange}
         activeClassName="text-bg-base bg-metallic-gradient border-b-[#00BEB4] border-b-2"
       ></Segmented>
+      {/* 
       <div className="flex items-center gap-5 text-text-badge">
         <a
           target="_blank"
@@ -191,12 +177,12 @@ export function Header() {
             className="size-8 cursor-pointer"
             onClick={navigateToOldProfile}
           ></RAGFlowAvatar>
-          {/* Temporarily hidden */}
-          {/* <Badge className="h-5 w-8 absolute font-normal p-0 justify-center -right-8 -top-2 text-bg-base bg-gradient-to-l from-[#42D7E7] to-[#478AF5]">
+          <Badge className="h-5 w-8 absolute font-normal p-0 justify-center -right-8 -top-2 text-bg-base bg-gradient-to-l from-[#42D7E7] to-[#478AF5]">
             Pro
-          </Badge> */}
+          </Badge>
         </div>
       </div>
+      */}
     </section>
   );
 }

@@ -35,6 +35,13 @@ from rag.llm import FACTORY_DEFAULT_BASE_URL, LITELLM_PROVIDER_PREFIX, Supported
 from rag.nlp import is_chinese, is_english
 
 
+def _truncated_log(label, data):
+    s = json.dumps(data, ensure_ascii=False)
+    if len(s) > 400:
+        s = s[:200] + f" ... [truncated {len(s) - 400} chars] ... " + s[-200:]
+    logging.info(label + s)
+
+
 # Error message constants
 class LLMErrorCode(StrEnum):
     ERROR_RATE_LIMIT = "RATE_LIMIT_EXCEEDED"
@@ -63,7 +70,7 @@ LENGTH_NOTIFICATION_EN = "...\nThe answer is truncated by your chosen LLM due to
 
 class Base(ABC):
     def __init__(self, key, model_name, base_url, **kwargs):
-        timeout = int(os.environ.get("LLM_TIMEOUT_SECONDS", 600))
+        timeout = int(os.environ.get("LLM_TIMEOUT_SECONDS", 1800))
         self.client = OpenAI(api_key=key, base_url=base_url, timeout=timeout)
         self.async_client = AsyncOpenAI(api_key=key, base_url=base_url, timeout=timeout)
         self.model_name = model_name
@@ -102,8 +109,14 @@ class Base(ABC):
     def _clean_conf(self, gen_conf):
         model_name_lower = (self.model_name or "").lower()
         # gpt-5 and gpt-5.1 endpoints have inconsistent parameter support, clear custom generation params to prevent unexpected issues
-        if "gpt-5" in model_name_lower:
-            gen_conf = {}
+        #if "gpt-5" in model_name_lower:
+        #    gen_conf = {}
+        #    return gen_conf
+
+        gpt5Models = ["gpt-5", "gpt-5-chat-latest", "gpt-5-mini", "gpt-5.1", "gpt-5.1-chat-latest", "gpt-5.2", "gpt-5.2-pro"]
+        if any(model in model_name_lower for model in gpt5Models):
+            if "max_tokens" in gen_conf:
+                gen_conf["max_completion_tokens"] = gen_conf.pop("max_tokens")
             return gen_conf
         
         if "max_tokens" in gen_conf:
@@ -136,7 +149,7 @@ class Base(ABC):
         return gen_conf
 
     async def _async_chat_streamly(self, history, gen_conf, **kwargs):
-        logging.info("[HISTORY STREAMLY]" + json.dumps(history, ensure_ascii=False, indent=4))
+        _truncated_log("[HISTORY STREAMLY] ", history)
         reasoning_start = False
 
         request_kwargs = {"model": self.model_name, "messages": history, "stream": True, **gen_conf}
@@ -442,7 +455,7 @@ class Base(ABC):
         assert False, "Shouldn't be here."
 
     async def _async_chat(self, history, gen_conf, **kwargs):
-        logging.info("[HISTORY]" + json.dumps(history, ensure_ascii=False, indent=2))
+        _truncated_log("[HISTORY] ", history)
         if self.model_name.lower().find("qwq") >= 0:
             logging.info(f"[INFO] {self.model_name} detected as reasoning model, using async_chat_streamly")
 
@@ -1202,7 +1215,7 @@ class LiteLLMBase(ABC):
     ]
 
     def __init__(self, key, model_name, base_url=None, **kwargs):
-        self.timeout = int(os.environ.get("LLM_TIMEOUT_SECONDS", 600))
+        self.timeout = int(os.environ.get("LLM_TIMEOUT_SECONDS", 1800))
         self.provider = kwargs.get("provider", "")
         self.prefix = LITELLM_PROVIDER_PREFIX.get(self.provider, "")
         self.model_name = f"{self.prefix}{model_name}"
@@ -1254,12 +1267,13 @@ class LiteLLMBase(ABC):
         return gen_conf
 
     async def async_chat(self, system, history, gen_conf, **kwargs):
+        gen_conf = self._clean_conf(gen_conf)
         hist = list(history) if history else []
         if system:
             if not hist or hist[0].get("role") != "system":
                 hist.insert(0, {"role": "system", "content": system})
 
-        logging.info("[HISTORY]" + json.dumps(hist, ensure_ascii=False, indent=2))
+        _truncated_log("[HISTORY] ", hist)
         if self.model_name.lower().find("qwen3") >= 0:
             kwargs["extra_body"] = {"enable_thinking": False}
 
@@ -1271,7 +1285,7 @@ class LiteLLMBase(ABC):
                     **completion_args,
                     drop_params=True,
                     timeout=self.timeout,
-                )
+                ) 
 
                 if any([not response.choices, not response.choices[0].message, not response.choices[0].message.content]):
                     return "", 0
@@ -1290,7 +1304,7 @@ class LiteLLMBase(ABC):
     async def async_chat_streamly(self, system, history, gen_conf, **kwargs):
         if system and history and history[0].get("role") != "system":
             history.insert(0, {"role": "system", "content": system})
-        logging.info("[HISTORY STREAMLY]" + json.dumps(history, ensure_ascii=False, indent=4))
+        _truncated_log("[HISTORY STREAMLY] ", history)
         gen_conf = self._clean_conf(gen_conf)
         reasoning_start = False
         total_tokens = 0
@@ -1696,4 +1710,4 @@ class LiteLLMBase(ABC):
             extra_headers["Authorization"] = f"Bearer {self.api_key}"
         if extra_headers:
             completion_args["extra_headers"] = extra_headers
-        return completion_args
+        return completion_args 

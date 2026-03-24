@@ -29,7 +29,7 @@ if [ -f .env ]; then
 else
   echo "⚠️ .env not found, using default ports and pool size"
   SANDBOX_EXECUTOR_MANAGER_PORT=9385
-  SANDBOX_EXECUTOR_MANAGER_POOL_SIZE=5
+  SANDBOX_EXECUTOR_MANAGER_POOL_SIZE=50
   SANDBOX_BASE_PYTHON_IMAGE=sandbox-base-python:latest
   SANDBOX_BASE_NODEJS_IMAGE=sandbox-base-nodejs:latest
 fi

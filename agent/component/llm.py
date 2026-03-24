@@ -260,7 +260,7 @@ class LLM(ComponentBase):
 
         self.set_output("content", answer)
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     async def _invoke_async(self, **kwargs):
         if self.check_if_canceled("LLM processing"):
             return
@@ -337,7 +337,7 @@ class LLM(ComponentBase):
             else:
                 self.set_output("_ERROR", error)
 
-    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 10*60)))
+    @timeout(int(os.environ.get("COMPONENT_EXEC_TIMEOUT", 30*60)))
     def _invoke(self, **kwargs):
         return asyncio.run(self._invoke_async(**kwargs))
 

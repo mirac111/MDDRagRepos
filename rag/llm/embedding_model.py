@@ -971,6 +971,47 @@ class JiekouAIEmbed(OpenAIEmbed):
 class DiagnosisGenieEmbed(Base):
     _FACTORY_NAME = "DiagnosisGenie"
 
+    def __init__(self, key, model_name, base_url="http://localhost:6742"):
+        if not base_url:
+            base_url = "http://localhost:6742"
+        self.base_url = base_url
+        self.model_name = model_name
+        self.headers = {"Content-Type": "application/json"}
+
+    def encode(self, texts: list):
+        texts = [truncate(t, 8192) for t in texts]
+        batch_size = 32
+        ress = []
+        token_count = 0
+        
+        for i in range(0, len(texts), batch_size):
+            payload = {
+                "texts": texts[i : i + batch_size],
+                "normalize": True
+            }
+            response = requests.post(
+                f"{self.base_url}/embed",
+                json=payload,
+                headers=self.headers
+            )
+            try:
+                res = response.json()
+                ress.extend(res["embeddings"])
+                token_count += res["metadata"]["count"]
+            except Exception as _e:
+                log_exception(_e, response)
+                raise Exception(f"Error: {response}")
+        
+        return np.array(ress), token_count
+
+    def encode_queries(self, text):
+        embds, cnt = self.encode([text])
+        return np.array(embds[0]), cnt
+
+"""
+class DiagnosisGenieEmbed(Base):
+    _FACTORY_NAME = "DiagnosisGenie"
+
     def __init__(self, key, model_name, base_url="https://embedding.diagnosis-genie.uk:6742"):
         self.base_url = base_url if base_url else "https://embedding.diagnosis-genie.uk:6742"
         self.headers = {"Content-Type": "application/json"}
@@ -995,4 +1036,4 @@ class DiagnosisGenieEmbed(Base):
     def encode_queries(self, text):
         embds, cnt = self.encode([text])
         return np.array(embds[0]), cnt
-
+"""

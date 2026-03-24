@@ -189,7 +189,7 @@ class UserCanvasService(CommonService):
             return False
         return True
 
-
+ 
 async def completion(tenant_id, agent_id, session_id=None, **kwargs):
     query = kwargs.get("query", "") or kwargs.get("question", "")
     files = kwargs.get("files", [])

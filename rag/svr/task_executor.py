@@ -60,7 +60,7 @@ from api.db.services.file2document_service import File2DocumentService
 from common.versions import get_ragflow_version
 from api.db.db_models import close_connection
 from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, \
-    email, tag, sut, table_sut, fi_sut
+    email, tag, sut, table_sut, fi_sut, sut_teblig, ek4g
 from rag.nlp import search, rag_tokenizer, add_positions
 from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
 from common.token_utils import num_tokens_from_string, truncate
@@ -92,7 +92,9 @@ FACTORY = {
     ParserType.TAG.value: tag,
     ParserType.TABLE_SUT.value: table_sut,
     ParserType.SUT.value: sut,
-    ParserType.FI_SUT.value: fi_sut
+    ParserType.FI_SUT.value: fi_sut,
+    ParserType.SUT_TEBLIG.value: sut_teblig,
+    ParserType.EK4G.value: ek4g
 }
 
 TASK_TYPE_TO_PIPELINE_TASK_TYPE = {
@@ -1292,20 +1294,12 @@ async def main():
     except (ValueError, IndexError):
         pass  # Non-standard consumer name, skip delay
 
-    logging.info(r"""
-    ____                      __  _
-   /  _/___  ____ ____  _____/ /_(_)___  ____     ________  ______   _____  _____
-   / // __ \/ __ `/ _ \/ ___/ __/ / __ \/ __ \   / ___/ _ \/ ___/ | / / _ \/ ___/
- _/ // / / / /_/ /  __(__  ) /_/ / /_/ / / / /  (__  )  __/ /   | |/ /  __/ /
-/___/_/ /_/\__, /\___/____/\__/_/\____/_/ /_/  /____/\___/_/    |___/\___/_/
-          /____/
-    """)
+    logging.info("rag task is running")
     logging.info(f'RAGFlow version: {get_ragflow_version()}')
     show_configs()
     settings.init_settings()
     settings.check_and_install_torch()
-    logging.info(f'default embedding config: {settings.EMBEDDING_CFG}')
-    settings.print_rag_settings()
+    #settings.print_rag_settings()
     if sys.platform != "win32":
         signal.signal(signal.SIGUSR1, start_tracemalloc_and_snapshot)
         signal.signal(signal.SIGUSR2, stop_tracemalloc)

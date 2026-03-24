@@ -20,7 +20,7 @@ ONE_MINUTE = 60
 ONE_HOUR = 3600
 ONE_DAY = ONE_HOUR * 24
 
-# Slack API limits
+# Slack API limits 
 _SLACK_LIMIT = 900
 
 # Redis lock configuration

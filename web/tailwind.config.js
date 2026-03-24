@@ -1,8 +1,9 @@
-const { fontFamily } = require('tailwindcss/defaultTheme');
+import containerQueries from '@tailwindcss/container-queries';
+import tailwindScrollbar from 'tailwind-scrollbar';
+import tailwindcssAnimate from 'tailwindcss-animate';
+import { fontFamily } from 'tailwindcss/defaultTheme';
 
-/** @type {import('tailwindcss').Config} */
-
-module.exports = {
+export default {
   darkMode: ['selector'],
   content: [
     './src/pages/**/*.tsx',
@@ -66,7 +67,6 @@ module.exports = {
 
         'input-border': 'var(--input-border)',
 
-        /* design colors */
         'bg-title': 'var(--bg-title)',
         'bg-base': 'var(--bg-base)',
         'bg-card': 'var(--bg-card)',
@@ -97,20 +97,20 @@ module.exports = {
         'border-button': 'var(--border-button)',
         'accent-primary': {
           DEFAULT: 'rgb(var(--accent-primary) / <alpha-value>)',
-          5: 'rgba(var(--accent-primary) / 0.05)', // 5%
+          5: 'rgba(var(--accent-primary) / 0.05)',
         },
         'bg-accent': 'var(--bg-accent)',
         'state-success': {
           DEFAULT: 'rgb(var(--state-success) / <alpha-value>)',
-          5: 'rgba(var(--state-success) / 0.05)', // 5%
+          5: 'rgba(var(--state-success) / 0.05)',
         },
         'state-warning': {
           DEFAULT: 'rgb(var(--state-warning) / <alpha-value>)',
-          5: 'rgba(var(--state-warning) / 0.05)', // 5%
+          5: 'rgba(var(--state-warning) / 0.05)',
         },
         'state-error': {
           DEFAULT: 'rgb(var(--state-error) / <alpha-value>)',
-          5: 'rgba(var(--state-error) / 0.05)', // 5%
+          5: 'rgba(var(--state-error) / 0.05)',
         },
         'team-group': 'var(--team-group)',
         'team-member': 'var(--team-member)',
@@ -154,10 +154,6 @@ module.exports = {
         'colors-background-inverse-standard': {
           DEFAULT: 'var(--colors-background-inverse-standard)',
           foreground: 'var(--colors-background-inverse-standard-foreground)',
-        },
-        'colors-background-inverse-standard': {
-          DEFAULT: 'var(--colors-background-inverse-standard)',
-          foreground: 'var(--background-inverse-standard-foreground)',
         },
         'colors-background-inverse-strong': {
           DEFAULT: 'var(--colors-background-inverse-strong)',
@@ -219,10 +215,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require('tailwindcss-animate'),
-    require('@tailwindcss/line-clamp'),
-    require('tailwind-scrollbar'),
-    require('@tailwindcss/container-queries'),
-  ],
+  plugins: [tailwindcssAnimate, tailwindScrollbar, containerQueries],
 };
