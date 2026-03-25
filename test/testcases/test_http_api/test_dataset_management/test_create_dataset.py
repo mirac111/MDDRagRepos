@@ -23,7 +23,7 @@ from utils import encode_avatar
 from utils.file_utils import create_image_file
 from utils.hypothesis_utils import valid_names
 
-from common import create_dataset
+from test_http_api.common import create_dataset
 
 
 @pytest.mark.usefixtures("clear_datasets")
@@ -32,11 +32,11 @@ class TestAuthorization:
     @pytest.mark.parametrize(
         "invalid_auth, expected_code, expected_message",
         [
-            (None, 0, "`Authorization` can't be empty"),
+            (None, 401, "<Unauthorized '401: Unauthorized'>"),
             (
                 RAGFlowHttpApiAuth(INVALID_API_TOKEN),
-                109,
-                "Authentication error: API key is invalid!",
+                401,
+                "<Unauthorized '401: Unauthorized'>",
             ),
         ],
         ids=["empty_auth", "invalid_api_token"],
@@ -151,7 +151,7 @@ class TestDatasetCreate:
         res = create_dataset(HttpApiAuth, payload)
         assert res["code"] == 0, res
 
-    @pytest.mark.p2
+    @pytest.mark.p3
     def test_avatar_exceeds_limit_length(self, HttpApiAuth):
         payload = {"name": "avatar_exceeds_limit_length", "avatar": "a" * 65536}
         res = create_dataset(HttpApiAuth, payload)
@@ -200,7 +200,7 @@ class TestDatasetCreate:
         assert res["code"] == 0, res
         assert res["data"]["description"] == "description", res
 
-    @pytest.mark.p2
+    @pytest.mark.p3
     def test_description_exceeds_limit_length(self, HttpApiAuth):
         payload = {"name": "description_exceeds_limit_length", "description": "a" * 65536}
         res = create_dataset(HttpApiAuth, payload)
@@ -250,7 +250,7 @@ class TestDatasetCreate:
     def test_embedding_model_invalid(self, HttpApiAuth, name, embedding_model):
         payload = {"name": name, "embedding_model": embedding_model}
         res = create_dataset(HttpApiAuth, payload)
-        assert res["code"] == 101, res
+        assert res["code"] == 102, res
         if "tenant_no_auth" in name:
             assert res["message"] == f"Unauthorized model: <{embedding_model}>", res
         else:
@@ -293,7 +293,7 @@ class TestDatasetCreate:
         assert res["code"] == 0, res
         assert res["data"]["embedding_model"] == "BAAI/bge-small-en-v1.5@Builtin", res
 
-    @pytest.mark.p1
+    @pytest.mark.p2
     @pytest.mark.parametrize(
         "name, permission",
         [

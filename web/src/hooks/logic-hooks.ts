@@ -1,6 +1,7 @@
+import message from '@/components/ui/message';
 import { Authorization } from '@/constants/authorization';
 import { MessageType } from '@/constants/chat';
-import { LanguageTranslationMap } from '@/constants/common';
+import { FormInstance } from '@/interfaces/antd-compat';
 import { Pagination } from '@/interfaces/common';
 import { ResponseType } from '@/interfaces/database/base';
 import {
@@ -10,11 +11,10 @@ import {
   Message,
 } from '@/interfaces/database/chat';
 import { IKnowledgeFile } from '@/interfaces/database/knowledge';
+import { changeLanguageAsync } from '@/locales/config';
 import api from '@/utils/api';
 import { getAuthorization } from '@/utils/authorization-util';
 import { buildMessageUuid } from '@/utils/chat';
-import { message } from 'antd';
-import { FormInstance } from 'antd/lib';
 import axios from 'axios';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { has, isEmpty, omit } from 'lodash';
@@ -55,9 +55,9 @@ export const useChangeLanguage = () => {
   const { saveSetting } = useSaveSetting();
 
   const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(
-      LanguageTranslationMap[lng as keyof typeof LanguageTranslationMap],
-    );
+    // const targetLng = LanguageTranslationMap[lng as keyof typeof LanguageTranslationMap];
+
+    changeLanguageAsync(lng);
     saveSetting({ language: lng });
   };
 
@@ -274,10 +274,31 @@ export const useSendMessageWithSse = (
                 const val = JSON.parse(value?.data || '');
                 const d = val?.data;
                 if (typeof d !== 'boolean') {
-                  setAnswer({
-                    ...d,
-                    conversationId: body?.conversation_id,
-                    chatBoxId: body.chatBoxId,
+                  setAnswer((prev) => {
+                    const prevAnswer = prev.answer || '';
+                    const currentAnswer = d.answer || '';
+
+                    let newAnswer: string;
+                    if (prevAnswer && currentAnswer.startsWith(prevAnswer)) {
+                      newAnswer = currentAnswer;
+                    } else {
+                      newAnswer = prevAnswer + currentAnswer;
+                    }
+
+                    if (d.start_to_think === true) {
+                      newAnswer = newAnswer + '<think>';
+                    }
+
+                    if (d.end_to_think === true) {
+                      newAnswer = newAnswer + '</think>';
+                    }
+
+                    return {
+                      ...d,
+                      answer: newAnswer,
+                      conversationId: body?.conversation_id,
+                      chatBoxId: body.chatBoxId,
+                    };
                   });
                 }
               } catch (e) {
@@ -387,7 +408,7 @@ export const useScrollToBottom = (
       const container = containerRef.current;
       container.scrollTo({
         top: container.scrollHeight - container.clientHeight,
-        behavior: 'smooth',
+        behavior: 'auto',
       });
     }
   }, [containerRef]);
@@ -523,6 +544,30 @@ export const useSelectDerivedMessages = () => {
     });
   }, []);
 
+  const addPrologue = useCallback((prologue: string) => {
+    setDerivedMessages((pre) => {
+      if (pre.length > 0) {
+        return [
+          {
+            ...pre[0],
+            content: prologue,
+          },
+          ...pre.slice(1),
+        ];
+      }
+
+      return [
+        {
+          role: MessageType.Assistant,
+          content: prologue,
+          id: buildMessageUuid({
+            role: MessageType.Assistant,
+          }),
+        },
+      ];
+    });
+  }, []);
+
   const removeLatestMessage = useCallback(() => {
     setDerivedMessages((pre) => {
       const nextMessages = pre?.slice(0, -2) ?? [];
@@ -594,6 +639,7 @@ export const useSelectDerivedMessages = () => {
     removeAllMessages,
     scrollToBottom,
     removeAllMessagesExceptFirst,
+    addPrologue,
   };
 };
 

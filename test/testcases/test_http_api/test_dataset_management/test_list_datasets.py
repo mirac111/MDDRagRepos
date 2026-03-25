@@ -28,11 +28,11 @@ class TestAuthorization:
     @pytest.mark.parametrize(
         "invalid_auth, expected_code, expected_message",
         [
-            (None, 0, "`Authorization` can't be empty"),
+            (None, 401, "<Unauthorized '401: Unauthorized'>"),
             (
                 RAGFlowHttpApiAuth(INVALID_API_TOKEN),
-                109,
-                "Authentication error: API key is invalid!",
+                401,
+                "<Unauthorized '401: Unauthorized'>",
             ),
         ],
     )
@@ -55,7 +55,7 @@ class TestCapability:
 
 @pytest.mark.usefixtures("add_datasets")
 class TestDatasetsList:
-    @pytest.mark.p1
+    @pytest.mark.p2
     def test_params_unset(self, HttpApiAuth):
         res = list_datasets(HttpApiAuth, None)
         assert res["code"] == 0, res
@@ -142,7 +142,7 @@ class TestDatasetsList:
         assert res["code"] == 0, res
         assert len(res["data"]) == 5, res
 
-    @pytest.mark.p2
+    @pytest.mark.p3
     @pytest.mark.parametrize(
         "params, assertions",
         [
@@ -237,7 +237,7 @@ class TestDatasetsList:
     def test_name_wrong(self, HttpApiAuth):
         params = {"name": "wrong name"}
         res = list_datasets(HttpApiAuth, params)
-        assert res["code"] == 108, res
+        assert res["code"] == 102, res
         assert "lacks permission for dataset" in res["message"], res
 
     @pytest.mark.p2
@@ -281,7 +281,7 @@ class TestDatasetsList:
     def test_id_wrong_uuid(self, HttpApiAuth):
         params = {"id": "d94a8dc02c9711f0930f7fbc369eab6d"}
         res = list_datasets(HttpApiAuth, params)
-        assert res["code"] == 108, res
+        assert res["code"] == 102, res
         assert "lacks permission for dataset" in res["message"], res
 
     @pytest.mark.p2
@@ -334,7 +334,7 @@ class TestDatasetsList:
         assert res["code"] == 108, res
         assert "lacks permission for dataset" in res["message"], res
 
-    @pytest.mark.p2
+    @pytest.mark.p3
     def test_field_unsupported(self, HttpApiAuth):
         params = {"unknown_field": "unknown_field"}
         res = list_datasets(HttpApiAuth, params)

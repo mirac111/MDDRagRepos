@@ -45,6 +45,7 @@ from api.utils.api_utils import (
     validate_request,
 )
 from api.utils.crypt import decrypt
+from api.utils.tenant_utils import ensure_tenant_model_id_for_params
 from rag.utils.redis_conn import REDIS_CONN
 from api.apps import login_required, current_user, login_user, logout_user
 from api.utils.web_utils import (
@@ -98,9 +99,7 @@ async def login():
         return get_json_result(data=False, code=RetCode.AUTHENTICATION_ERROR, message="Unauthorized!")
 
     email = json_body.get("email", "")
-    if email == "admin@ragflow.io":
-        return get_json_result(data=False, code=RetCode.AUTHENTICATION_ERROR, message="Default admin account cannot be used to login normal services!")
-    
+
     users = UserService.query(email=email)
     if not users:
         return get_json_result(
@@ -223,7 +222,7 @@ async def oauth_callback(channel):
         if not users:
             try:
                 try:
-                    avatar = download_img(user_info.avatar_url)
+                    avatar = await download_img(user_info.avatar_url)
                 except Exception as e:
                     logging.exception(e)
                     avatar = ""
@@ -318,7 +317,7 @@ async def github_callback():
         # User isn't try to register
         try:
             try:
-                avatar = download_img(user_info["avatar_url"])
+                avatar = await download_img(user_info["avatar_url"])
             except Exception as e:
                 logging.exception(e)
                 avatar = ""
@@ -422,7 +421,7 @@ async def feishu_callback():
         # User isn't try to register
         try:
             try:
-                avatar = download_img(user_info["avatar_url"])
+                avatar = await download_img(user_info["avatar_url"])
             except Exception as e:
                 logging.exception(e)
                 avatar = ""
@@ -843,7 +842,8 @@ async def set_tenant_info():
     req = await get_request_json()
     try:
         tid = req.pop("tenant_id")
-        TenantService.update_by_id(tid, req)
+        update_dict = ensure_tenant_model_id_for_params(tid, req)
+        TenantService.update_by_id(tid, update_dict)
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)

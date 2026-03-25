@@ -13,8 +13,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import os
 from time import sleep
-
+from ragflow_sdk import RAGFlow
+from configs import HOST_ADDRESS, VERSION
 import pytest
 from common import (
     batch_add_chunks,
@@ -24,9 +26,9 @@ from common import (
     delete_dialogs,
     list_chunks,
     list_documents,
-    list_kbs,
+    list_datasets,
     parse_documents,
-    rm_kb,
+    delete_datasets,
 )
 from libs.auth import RAGFlowWebApiAuth
 from pytest import FixtureRequest
@@ -81,19 +83,30 @@ def generate_test_files(request: FixtureRequest, tmp_path):
 def ragflow_tmp_dir(request, tmp_path_factory):
     class_name = request.cls.__name__
     return tmp_path_factory.mktemp(class_name)
-
+@pytest.fixture(scope="session")
+def client(token: str) -> RAGFlow:
+    return RAGFlow(api_key=token, base_url=HOST_ADDRESS, version=VERSION)
 
 @pytest.fixture(scope="session")
 def WebApiAuth(auth):
     return RAGFlowWebApiAuth(auth)
 
 
+@pytest.fixture
+def require_env_flag():
+    def _require(flag, value="1"):
+        if os.getenv(flag) != value:
+            pytest.skip(f"Requires {flag}={value}")
+
+    return _require
+
+
 @pytest.fixture(scope="function")
 def clear_datasets(request: FixtureRequest, WebApiAuth: RAGFlowWebApiAuth):
     def cleanup():
-        res = list_kbs(WebApiAuth, params={"page_size": 1000})
-        for kb in res["data"]["kbs"]:
-            rm_kb(WebApiAuth, {"kb_id": kb["id"]})
+        res = list_datasets(WebApiAuth, params={"page_size": 1000})
+        kb_ids = [kb["id"] for kb in res["data"]]
+        delete_datasets(WebApiAuth, {"ids": kb_ids})
 
     request.addfinalizer(cleanup)
 
@@ -109,9 +122,9 @@ def clear_dialogs(request, WebApiAuth):
 @pytest.fixture(scope="class")
 def add_dataset(request: FixtureRequest, WebApiAuth: RAGFlowWebApiAuth) -> str:
     def cleanup():
-        res = list_kbs(WebApiAuth, params={"page_size": 1000})
-        for kb in res["data"]["kbs"]:
-            rm_kb(WebApiAuth, {"kb_id": kb["id"]})
+        res = list_datasets(WebApiAuth, params={"page_size": 1000})
+        kb_ids = [kb["id"] for kb in res["data"]]
+        delete_datasets(WebApiAuth, {"ids": kb_ids})
 
     request.addfinalizer(cleanup)
     return batch_create_datasets(WebApiAuth, 1)[0]
@@ -120,9 +133,9 @@ def add_dataset(request: FixtureRequest, WebApiAuth: RAGFlowWebApiAuth) -> str:
 @pytest.fixture(scope="function")
 def add_dataset_func(request: FixtureRequest, WebApiAuth: RAGFlowWebApiAuth) -> str:
     def cleanup():
-        res = list_kbs(WebApiAuth, params={"page_size": 1000})
-        for kb in res["data"]["kbs"]:
-            rm_kb(WebApiAuth, {"kb_id": kb["id"]})
+        res = list_datasets(WebApiAuth, params={"page_size": 1000})
+        kb_ids = [kb["id"] for kb in res["data"]]
+        delete_datasets(WebApiAuth, {"ids": kb_ids})
 
     request.addfinalizer(cleanup)
     return batch_create_datasets(WebApiAuth, 1)[0]

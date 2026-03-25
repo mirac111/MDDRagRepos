@@ -25,10 +25,10 @@ from api.db import InputType
 from api.db.db_models import Connector, SyncLogs, Connector2Kb, Knowledgebase
 from api.db.services.common_service import CommonService
 from api.db.services.document_service import DocumentService
+from api.db.services.document_service import DocMetadataService
 from common.misc_utils import get_uuid
 from common.constants import TaskStatus
 from common.time_utils import current_timestamp, timestamp_to_date
-
 
 class ConnectorService(CommonService):
     model = Connector
@@ -183,10 +183,11 @@ class SyncLogsService(CommonService):
                 ConnectorService.update_by_id(connector_id, {"status": TaskStatus.SCHEDULE})
 
     @classmethod
-    def increase_docs(cls, id, min_update, max_update, doc_num, err_msg="", error_count=0):
+    def increase_docs(cls, id, max_update, doc_num, err_msg="", error_count=0):
+        # Keep sync monotonic.
         cls.model.update(new_docs_indexed=cls.model.new_docs_indexed + doc_num,
                          total_docs_indexed=cls.model.total_docs_indexed + doc_num,
-                         poll_range_start=fn.COALESCE(fn.LEAST(cls.model.poll_range_start,min_update), min_update),
+                         poll_range_start=fn.COALESCE(fn.GREATEST(cls.model.poll_range_start, max_update), max_update),
                          poll_range_end=fn.COALESCE(fn.GREATEST(cls.model.poll_range_end, max_update), max_update),
                          error_msg=cls.model.error_msg + err_msg,
                          error_count=cls.model.error_count + error_count,
@@ -202,6 +203,7 @@ class SyncLogsService(CommonService):
             return None
 
         class FileObj(BaseModel):
+            id: str
             filename: str
             blob: bytes
 
@@ -209,7 +211,7 @@ class SyncLogsService(CommonService):
                 return self.blob
 
         errs = []
-        files = [FileObj(filename=d["semantic_identifier"]+(f"{d['extension']}" if d["semantic_identifier"][::-1].find(d['extension'][::-1])<0 else ""), blob=d["blob"]) for d in docs]
+        files = [FileObj(id=d["id"], filename=d["semantic_identifier"]+(f"{d['extension']}" if d["semantic_identifier"][::-1].find(d['extension'][::-1])<0 else ""), blob=d["blob"]) for d in docs]
         doc_ids = []
         err, doc_blob_pairs = FileService.upload_document(kb, files, tenant_id, src)
         errs.extend(err)
@@ -227,7 +229,7 @@ class SyncLogsService(CommonService):
             
             # Set metadata if available for this document
             if doc["name"] in metadata_map:
-                DocumentService.update_by_id(doc["id"], {"meta_fields": metadata_map[doc["name"]]})
+                DocMetadataService.update_document_metadata(doc["id"], metadata_map[doc["name"]])
             
             if not auto_parse or auto_parse == "0":
                 continue

@@ -156,12 +156,45 @@ TEMPLATE_FILE="${CONF_DIR}/service_conf.yaml.template"
 CONF_FILE="${CONF_DIR}/service_conf.yaml"
 
 rm -f "${CONF_FILE}"
+DEF_ENV_VALUE_PATTERN="\$\{([^:]+):-([^}]+)\}"
 while IFS= read -r line || [[ -n "$line" ]]; do
-    eval "echo \"$line\"" >> "${CONF_FILE}"
+    if [[ "$line" =~ DEF_ENV_VALUE_PATTERN ]]; then
+        varname="${BASH_REMATCH[1]}"
+        default="${BASH_REMATCH[2]}"
+
+        if [ -n "${!varname}" ]; then
+            eval "echo \"$line"\" >> "${CONF_FILE}"
+        else
+            echo "$line" | sed -E "s/\\\$\{[^:]+:-([^}]+)\}/\1/g" >> "${CONF_FILE}"
+        fi
+    else
+        eval "echo \"$line\"" >> "${CONF_FILE}"
+    fi
 done < "${TEMPLATE_FILE}"
 
 export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/"
 PY=python3
+
+# -----------------------------------------------------------------------------
+# Select Nginx Configuration based on API_PROXY_SCHEME
+# -----------------------------------------------------------------------------
+NGINX_CONF_DIR="/etc/nginx/conf.d"
+if [ -n "$API_PROXY_SCHEME" ]; then
+    if [[ "${API_PROXY_SCHEME}" == "hybrid" ]]; then
+        mv -f "$NGINX_CONF_DIR/ragflow.conf.hybrid" "$NGINX_CONF_DIR/ragflow.conf"
+        echo "Applied nginx config: ragflow.conf.hybrid"
+    elif [[ "${API_PROXY_SCHEME}" == "go" ]]; then
+        mv -f "$NGINX_CONF_DIR/ragflow.conf.golang" "$NGINX_CONF_DIR/ragflow.conf"
+        echo "Applied nginx config: ragflow.conf.golang (default)"
+    else
+        mv -f "$NGINX_CONF_DIR/ragflow.conf.python" "$NGINX_CONF_DIR/ragflow.conf"
+        echo "Applied nginx config: ragflow.conf.python"
+    fi
+else
+    # Default to python backend
+    mv -f "$NGINX_CONF_DIR/ragflow.conf.python" "$NGINX_CONF_DIR/ragflow.conf"
+    echo "Default: applied nginx config: ragflow.conf.python"
+fi
 
 # -----------------------------------------------------------------------------
 # Function(s)
@@ -195,16 +228,39 @@ function start_mcp_server() {
 
 function ensure_docling() {
     [[ "${USE_DOCLING}" == "true" ]] || { echo "[docling] disabled by USE_DOCLING"; return 0; }
-    python3 -c 'import pip' >/dev/null 2>&1 || python3 -m ensurepip --upgrade || true
-    DOCLING_PIN="${DOCLING_VERSION:-==2.58.0}"
-    python3 -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('docling') else 1)" \
-      || python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --extra-index-url https://pypi.org/simple --no-cache-dir "docling${DOCLING_PIN}"
+    DOCLING_PIN="${DOCLING_VERSION:-==2.71.0}"
+    "$PY" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('docling') else 1)" \
+      || uv pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --extra-index-url https://pypi.org/simple --no-cache-dir "docling${DOCLING_PIN}"
+}
+
+function ensure_db_init() {
+  echo "Initializing database tables..."
+  "$PY" -c "from api.db.db_models import init_database_tables as init_web_db; init_web_db()"
+}
+
+function wait_for_server() {
+    local url="$1"
+    local server_name="$2"
+    local timeout=90
+    local interval=2
+    local start_time=$(date +%s)
+
+    echo "Waiting for $server_name to be ready at $url..."
+    while ! curl -f -s -o /dev/null "$url"; do
+        if [ $(($(date +%s) - start_time)) -gt $timeout ]; then
+            echo "Timeout waiting for $server_name after $timeout seconds"
+            return 1
+        fi
+        sleep $interval
+    done
+    echo "$server_name is ready."
 }
 
 # -----------------------------------------------------------------------------
 # Start components based on flags
 # -----------------------------------------------------------------------------
 ensure_docling
+ensure_db_init
 
 if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
     echo "Starting nginx..."
@@ -213,6 +269,12 @@ if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
     echo "Starting ragflow_server..."
     while true; do
         "$PY" api/ragflow_server.py ${INIT_SUPERUSER_ARGS} &
+
+        if [[ "${API_PROXY_SCHEME}" == "hybrid" ]]; then
+            wait_for_server "http://127.0.0.1:9380/healthz" "ragflow_server"
+            echo "Starting RAGFlow server in hybrid mode..."
+            bin/server_main &
+        fi
         wait;
         sleep 1;
     done &
@@ -231,6 +293,11 @@ if [[ "${ENABLE_ADMIN_SERVER}" -eq 1 ]]; then
     echo "Starting admin_server..."
     while true; do
         "$PY" admin/server/admin_server.py &
+        if [[ "${API_PROXY_SCHEME}" == "hybrid" ]]; then
+            wait_for_server "http://127.0.0.1:9381/api/v1/admin/ping" "admin_server"
+            echo "Starting Admin server in hybrid mode..."
+            bin/admin_server &
+        fi
         wait;
         sleep 1;
     done &

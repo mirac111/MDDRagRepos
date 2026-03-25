@@ -6,12 +6,135 @@ import { createHtmlPlugin } from 'vite-plugin-html';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { appName } from './src/conf.json';
 
+// Inject code location data attributes for react-dev-inspector
+const inspectorBabelPlugin = (): import('vite').Plugin => ({
+  name: 'inspector-babel',
+  enforce: 'pre' as const,
+  async transform(code: string, id: string) {
+    if (id.includes('node_modules')) return;
+    if (!/\.[jt]sx$/.test(id)) return;
+
+    // Dynamically import babel transform to inject data attributes
+    const { transform } = await import('@react-dev-inspector/babel-plugin');
+    return {
+      code: transform({
+        filePath: id,
+        sourceCode: code,
+      }),
+      map: null,
+    };
+  },
+});
+
 // https://vitejs.dev/config/
-export default defineConfig(({ mode, command }) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+
+  const proxySchemes = {
+    python: {
+      '/api/v1/admin': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api': {
+        target: 'http://127.0.0.1:9380/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/v1': {
+        target: 'http://127.0.0.1:9380/',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+    hybrid: {
+      '/v1/system/config': {
+        target: 'http://127.0.0.1:9384/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/v1/user/login': {
+        target: 'http://127.0.0.1:9384/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/v1/user/logout': {
+        target: 'http://127.0.0.1:9384/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/sandbox': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/roles': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/roles/owner/permission': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/roles_with_permission': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/whitelist': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin/variables': {
+        target: 'http://127.0.0.1:9381/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/v1/admin': {
+        target: 'http://127.0.0.1:9383/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api': {
+        target: 'http://127.0.0.1:9380/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/v1': {
+        target: 'http://127.0.0.1:9380/',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+    go: {
+      '/api/v1/admin': {
+        target: 'http://127.0.0.1:9383/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api': {
+        target: 'http://127.0.0.1:9384/',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/v1': {
+        target: 'http://127.0.0.1:9384/',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+  };
+
+  const proxy =
+    proxySchemes[env.API_PROXY_SCHEME || 'python'] || proxySchemes.python;
 
   return {
     plugins: [
+      inspectorBabelPlugin(),
       react(),
       viteStaticCopy({
         targets: [
@@ -59,7 +182,11 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     server: {
-      port: 9222,
+      port: Number(env.PORT) || 9222,
+      strictPort: false,
+      hmr: {
+        overlay: false,
+      },
       proxy: {
         '/api/v1/admin': {
           target: 'http://127.0.0.1:9381/',
@@ -74,26 +201,79 @@ export default defineConfig(({ mode, command }) => {
         },
       },
     },
-    define: {
-      'process.env.UMI_APP_RAGFLOW_ENTERPRISE': JSON.stringify(
-        env.UMI_APP_RAGFLOW_ENTERPRISE,
-      ),
-    },
     assetsInclude: ['**/*.md'],
     base: env.VITE_BASE_URL,
     publicDir: 'public',
+    cacheDir: './node_modules/.vite-cache',
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router',
+        'antd',
+        'axios',
+        'lodash',
+        'dayjs',
+      ],
+      exclude: [],
+      force: false,
+    },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
       assetsInlineLimit: 4096,
       experimentalMinChunkSize: 30 * 1024,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
+        onwarn(warning, warn) {
+          if (warning.code === 'EMPTY_BUNDLE') {
+            return;
+          }
+          warn(warning);
+        },
         output: {
+          manualChunks(id) {
+            // if (id.includes('src/components')) {
+            //   return 'components';
+            // }
+
+            if (id.includes('src/locales/') && id.endsWith('.ts')) {
+              const match = id.match(/src\/locales\/([^/]+)\.ts$/);
+              if (match) {
+                return `locale-${match[1]}`;
+              }
+            }
+
+            if (id.includes('node_modules')) {
+              if (id.includes('node_modules/d3')) {
+                return 'd3';
+              }
+              if (id.includes('node_modules/ajv')) {
+                return 'ajv';
+              }
+              if (id.includes('node_modules/@antv')) {
+                return 'antv';
+              }
+              const name = id
+                .toString()
+                .split('node_modules/')[1]
+                .split('/')[0]
+                .toString();
+              if (['lodash', 'dayjs', 'date-fns', 'axios'].includes(name)) {
+                return 'utils';
+              }
+              if (['@xmldom', 'xmlbuilder '].includes(name)) {
+                return 'xml-js';
+              }
+              return name;
+            }
+          },
           chunkFileNames: 'chunk/js/[name]-[hash].js',
           entryFileNames: 'entry/js/[name]-[hash].js',
           assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         },
         plugins: [],
+        treeshake: true,
       },
       minify: 'terser',
       terserOptions: {
@@ -113,6 +293,8 @@ export default defineConfig(({ mode, command }) => {
         },
       },
       sourcemap: true,
+      cssCodeSplit: true,
+      target: 'es2015',
     },
     esbuild: {
       tsconfigRaw: {
@@ -123,5 +305,6 @@ export default defineConfig(({ mode, command }) => {
         },
       },
     },
+    entries: ['./src/main.tsx'],
   };
 });

@@ -23,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Union
 
+import xxhash
 from peewee import fn
 
 from api.db import KNOWLEDGEBASE_FOLDER_NAME, FileType
@@ -439,6 +440,35 @@ class FileService(CommonService):
 
         err, files = [], []
         for file in file_objs:
+            doc_id = file.id if hasattr(file, "id") else get_uuid()
+            e, doc = DocumentService.get_by_id(doc_id)
+            if e:
+                try:
+                    if str(doc.kb_id) != str(kb.id):
+                        logging.warning(
+                            "Existing document id collision detected for %s: belongs to kb_id=%s, incoming kb_id=%s. "
+                            "Skipping update to avoid cross-KB overwrite.",
+                            doc_id,
+                            doc.kb_id,
+                            kb.id,
+                        )
+                        user_msg = "Existing document id collision with another knowledge base; skipping update."
+                        err.append(file.filename + ": " + user_msg)
+                        continue
+                    blob = file.read()
+                    new_hash = xxhash.xxh128(blob).hexdigest()
+                    old_hash = doc.content_hash or ""
+                    settings.STORAGE_IMPL.put(kb.id, doc.location, blob, kb.tenant_id)
+                    doc.size = len(blob)
+                    doc.content_hash = new_hash
+                    doc = doc.to_dict()
+                    DocumentService.update_by_id(doc["id"], doc)
+                    if new_hash != old_hash:
+                        files.append((doc, blob))
+                except Exception as exc:
+                    logging.exception(f"Failed to update document {doc_id}: {exc}")
+                    err.append(file.filename + ": " + str(exc))
+                continue
             try:
                 DocumentService.check_doc_health(kb.tenant_id, file.filename)
                 filename = duplicate_name(DocumentService.query, name=file.filename, kb_id=kb.id)
@@ -455,7 +485,6 @@ class FileService(CommonService):
                     blob = read_potential_broken_pdf(blob)
                 settings.STORAGE_IMPL.put(kb.id, location, blob)
 
-                doc_id = get_uuid()
 
                 img = thumbnail_img(filename, blob)
                 thumbnail_location = ""
@@ -477,6 +506,7 @@ class FileService(CommonService):
                     "location": location,
                     "size": len(blob),
                     "thumbnail": thumbnail_location,
+                    "content_hash": xxhash.xxh128(blob).hexdigest(),
                 }
                 DocumentService.insert(doc)
 
@@ -521,7 +551,7 @@ class FileService(CommonService):
         return "\n\n".join(res)
 
     @staticmethod
-    def parse(filename, blob, img_base64=True, tenant_id=None):
+    def parse(filename, blob, img_base64=True, tenant_id=None, layout_recognize=None):
         from rag.app import audio, email, naive, picture, presentation
         from api.apps import current_user
 
@@ -665,7 +695,7 @@ class FileService(CommonService):
         return structured(file.filename, filename_type(file.filename), file.read(), file.content_type)
 
     @staticmethod
-    def get_files(files: Union[None, list[dict]]) -> list[str]:
+    def get_files(files: Union[None, list[dict]], raw: bool = False, layout_recognize: str = None) -> Union[list[str], tuple[list[str], list[dict]]]:
         if not files:
             return  []
         def image_to_base64(file):
@@ -673,10 +703,17 @@ class FileService(CommonService):
                                         base64.b64encode(FileService.get_blob(file["created_by"], file["id"])).decode("utf-8"))
         exe = ThreadPoolExecutor(max_workers=5)
         threads = []
+        imgs = []
         for file in files:
             if file["mime_type"].find("image") >=0:
-                threads.append(exe.submit(image_to_base64, file))
+                if raw:
+                    imgs.append(FileService.get_blob(file["created_by"], file["id"]))
+                else:
+                    threads.append(exe.submit(image_to_base64, file))
                 continue
-            threads.append(exe.submit(FileService.parse, file["name"], FileService.get_blob(file["created_by"], file["id"]), True, file["created_by"]))
-        return [th.result() for th in threads]
-
+            threads.append(exe.submit(FileService.parse, file["name"], FileService.get_blob(file["created_by"], file["id"]), True, file["created_by"], layout_recognize))
+    
+        if raw:
+            return [th.result() for th in threads], imgs
+        else:
+            return [th.result() for th in threads]

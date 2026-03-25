@@ -27,6 +27,10 @@ from common.mcp_tool_call_conn import MCPToolCallSession, ToolCallSession
 from timeit import default_timer as timer
 
 
+
+
+from common.misc_utils import thread_pool_exec
+
 class ToolParameter(TypedDict):
     type: str
     description: str
@@ -53,17 +57,19 @@ class LLMToolPluginCallSession(ToolCallSession):
 
     async def tool_call_async(self, name: str, arguments: dict[str, Any]) -> Any:
         assert name in self.tools_map, f"LLM tool {name} does not exist"
+        logging.info(f"[ToolCall] invoke name={name} arguments={str(arguments)[:200]}")
         st = timer()
         tool_obj = self.tools_map[name]
         if isinstance(tool_obj, MCPToolCallSession):
-            resp = await asyncio.to_thread(tool_obj.tool_call, name, arguments, 60)
+            resp = await thread_pool_exec(tool_obj.tool_call, name, arguments, 60)
+        elif hasattr(tool_obj, "invoke_async") and asyncio.iscoroutinefunction(tool_obj.invoke_async):
+            resp = await tool_obj.invoke_async(**arguments)
         else:
-            if hasattr(tool_obj, "invoke_async") and asyncio.iscoroutinefunction(tool_obj.invoke_async):
-                resp = await tool_obj.invoke_async(**arguments)
-            else:
-                resp = await asyncio.to_thread(tool_obj.invoke, **arguments)
+            resp = await thread_pool_exec(tool_obj.invoke, **arguments)
 
-        self.callback(name, arguments, resp, elapsed_time=timer()-st)
+        elapsed = timer() - st
+        logging.info(f"[ToolCall] done name={name} elapsed={elapsed:.2f}s result={str(resp)[:200]}")
+        self.callback(name, arguments, resp, elapsed_time=elapsed)
         return resp
 
     def get_tool_obj(self, name):
@@ -97,13 +103,8 @@ class ToolParamBase(ComponentParamBase):
             if "enum" in p:
                 params[k]["enum"] = p["enum"]
 
-        desc = self.meta["description"]
-        if hasattr(self, "description"):
-            desc = self.description
-
-        function_name = self.meta["name"]
-        if hasattr(self, "function_name"):
-            function_name = self.function_name
+        desc = getattr(self, "description", None) or self.meta["description"]
+        function_name = getattr(self, "function_name", self.meta["name"])
 
         return {
             "type": "function",
@@ -122,6 +123,7 @@ class ToolParamBase(ComponentParamBase):
 class ToolBase(ComponentBase):
     def __init__(self, canvas, id, param: ComponentParamBase):
         from agent.canvas import Canvas  # Local import to avoid cyclic dependency
+
         assert isinstance(canvas, Canvas), "canvas must be an instance of Canvas"
         self._canvas = canvas
         self._id = id
@@ -164,7 +166,7 @@ class ToolBase(ComponentBase):
             elif asyncio.iscoroutinefunction(self._invoke):
                 res = await self._invoke(**kwargs)
             else:
-                res = await asyncio.to_thread(self._invoke, **kwargs)
+                res = await thread_pool_exec(self._invoke, **kwargs)
         except Exception as e:
             self._param.outputs["_ERROR"] = {"value": str(e)}
             logging.exception(e)

@@ -1,8 +1,10 @@
 ---
 sidebar_position: -3
 slug: /select_pdf_parser
+sidebar_custom_props: {
+  categoryIcon: LucideFileText
+}
 ---
-
 # Select PDF parser
 
 Select a visual model for parsing your PDFs.
@@ -62,6 +64,12 @@ Starting from v0.22.0, RAGFlow includes MinerU (&ge; 2.6.3) as an optional PDF p
 3. In the web UI, navigate to your dataset's **Configuration** page and find the **Ingestion pipeline** section:  
    - If you decide to use a chunking method from the **Built-in** dropdown, ensure it supports PDF parsing, then select **MinerU** from the **PDF parser** dropdown.
    - If you use a custom ingestion pipeline instead, select **MinerU** in the **PDF parser** section of the **Parser** component.
+
+To use an external Docling Serve instance (instead of local in-process Docling), set:
+
+- `DOCLING_SERVER_URL`: The Docling Serve API endpoint (for example, `http://docling-host:5001`).
+
+When `DOCLING_SERVER_URL` is set, RAGFlow sends PDF content to Docling Serve (`/v1/convert/source`, with fallback to `/v1alpha/convert/source`) and ingests the returned markdown/text. If the variable is not set, RAGFlow keeps using local Docling (`USE_DOCLING=true` + installed package) behavior.
 
 :::note
 All MinerU environment variables are optional. When set, these values are used to auto-provision a MinerU OCR model for the tenant on first use. To avoid auto-provisioning, skip the environment variable settings and only configure MinerU from the **Model providers** page in the UI.

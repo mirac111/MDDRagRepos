@@ -63,6 +63,10 @@ class DocumentSource(str, Enum):
     IMAP = "imap"
     BITBUCKET = "bitbucket"
     ZENDESK = "zendesk"
+    SEAFILE = "seafile"
+    MYSQL = "mysql"
+    POSTGRESQL = "postgresql"
+    DINGTALK_AI_TABLE = "dingtalk_ai_table"
 
 
 class FileOrigin(str, Enum):

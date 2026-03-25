@@ -34,13 +34,19 @@ import {
 } from 'react-hook-form';
 import { useLocation } from 'react-router';
 import { DataSetContext } from '..';
+import { MetadataType } from '../../components/metedata/constant';
 import {
-  MetadataType,
   useManageMetadata,
   util,
 } from '../../components/metedata/hooks/use-manage-modal';
-import { IMetaDataReturnJSONSettings } from '../../components/metedata/interface';
+
+import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import {
+  IBuiltInMetadataItem,
+  IMetaDataReturnJSONSettings,
+} from '../../components/metedata/interface';
 import { ManageMetadataModal } from '../../components/metedata/manage-modal';
+import { useKnowledgeBaseContext } from '../../contexts/knowledge-base-context';
 import {
   useHandleKbEmbedding,
   useHasParsedDocument,
@@ -63,7 +69,7 @@ export function ChunkMethodItem(props: IProps) {
   return (
     <FormField
       control={form.control}
-      name={'parser_id'}
+      name={'chunk_method'}
       render={({ field }) => (
         <FormItem className=" items-center space-y-1">
           <div className={line === 1 ? 'flex items-center' : ''}>
@@ -101,11 +107,13 @@ export const EmbeddingSelect = ({
   field,
   name,
   disabled = false,
+  testId,
 }: {
   isEdit: boolean;
   field: FieldValues;
   name?: string;
   disabled?: boolean;
+  testId?: string;
 }) => {
   const { t } = useTranslate('knowledgeConfiguration');
   const form = useFormContext();
@@ -113,7 +121,7 @@ export const EmbeddingSelect = ({
   const { handleChange } = useHandleKbEmbedding();
 
   const oldValue = useMemo(() => {
-    const embdStr = form.getValues(name || 'embd_id');
+    const embdStr = form.getValues(name || 'embedding_model');
     return embdStr || '';
   }, [form]);
   const [loading, setLoading] = useState(false);
@@ -143,6 +151,7 @@ export const EmbeddingSelect = ({
         value={field.value}
         options={embeddingModelOptions}
         placeholder={t('embeddingModelPlaceholder')}
+        testId={testId}
       />
     </Spin>
   );
@@ -156,7 +165,7 @@ export function EmbeddingModelItem({ line = 1, isEdit }: IProps) {
     <>
       <FormField
         control={form.control}
-        name={'embd_id'}
+        name={'embedding_model'}
         render={({ field }) => (
           <FormItem className={cn(' items-center space-y-0 ')}>
             <div
@@ -182,6 +191,7 @@ export function EmbeddingModelItem({ line = 1, isEdit }: IProps) {
                     isEdit={!!isEdit}
                     field={field}
                     disabled={disabled}
+                    testId="ds-settings-basic-embedding-model-select"
                   ></EmbeddingSelect>
                 </FormControl>
               </div>
@@ -307,6 +317,7 @@ export function EnableTocToggle() {
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  data-testid="ds-settings-parser-page-index-switch"
                 />
               </FormControl>
             </div>
@@ -339,6 +350,8 @@ export function ImageContextWindow() {
               defaultValue={0}
               min={0}
               max={256}
+              sliderTestId="ds-settings-parser-image-table-context-window-slider"
+              numberInputTestId="ds-settings-parser-image-table-context-window-input"
             />
           </FormControl>
           <div className="flex pt-1">
@@ -357,8 +370,11 @@ export function OverlappedPercent() {
       percentage={true}
       name="parser_config.overlapped_percent"
       label={t('knowledgeConfiguration.overlappedPercent')}
+      tooltip={t('knowledgeConfiguration.overlappedPercentTip')}
       max={0.3}
       step={0.01}
+      sliderTestId="ds-settings-parser-overlapped-percent-slider"
+      numberInputTestId="ds-settings-parser-overlapped-percent-input"
     ></SliderInputFormField>
   );
 }
@@ -374,6 +390,7 @@ export function AutoMetadata({
   const location = useLocation();
   const form = useFormContext();
   const datasetContext = useContext(DataSetContext);
+  const { knowledgeBase } = useKnowledgeBaseContext();
   const {
     manageMetadataVisible,
     showManageMetadataModal,
@@ -384,22 +401,39 @@ export function AutoMetadata({
 
   const handleClickOpenMetadata = useCallback(() => {
     const metadata = form.getValues('parser_config.metadata');
+    const builtInMetadata = form.getValues('parser_config.built_in_metadata');
     const tableMetaData = util.metaDataSettingJSONToMetaDataTableData(metadata);
     showManageMetadataModal({
       metadata: tableMetaData,
       isCanAdd: true,
       type: type,
       record: otherData,
+      builtInMetadata,
+      secondTitle: knowledgeBase ? (
+        <div className="w-full flex items-center gap-1 text-sm text-text-secondary">
+          <RAGFlowAvatar
+            avatar={knowledgeBase.avatar}
+            name={knowledgeBase.name}
+            className="size-8"
+          />
+          <div className="text-text-primary text-base space-y-1 truncate overflow-hidden">
+            {knowledgeBase.name}
+          </div>
+        </div>
+      ) : (
+        <></>
+      ),
     });
-  }, [form, otherData, showManageMetadataModal, type]);
+  }, [form, otherData, showManageMetadataModal, knowledgeBase, type]);
 
   useEffect(() => {
     const locationState = location.state as
       | { openMetadata?: boolean }
       | undefined;
     if (locationState?.openMetadata && !datasetContext?.loading) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         handleClickOpenMetadata();
+        clearTimeout(timer);
       }, 0);
       locationState.openMetadata = false;
       history.replace({ ...location }, locationState);
@@ -415,7 +449,12 @@ export function AutoMetadata({
     tooltip: t('knowledgeConfiguration.autoMetadataTip'),
     render: (fieldProps: ControllerRenderProps) => (
       <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" onClick={handleClickOpenMetadata}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleClickOpenMetadata}
+          data-testid="ds-settings-metadata-open-modal-btn"
+        >
           <div className="flex items-center gap-2">
             <Settings />
             {t('knowledgeConfiguration.settings')}
@@ -424,13 +463,22 @@ export function AutoMetadata({
         <Switch
           checked={fieldProps.value}
           onCheckedChange={fieldProps.onChange}
+          data-testid="ds-settings-metadata-switch"
         />
       </div>
     ),
   };
 
-  const handleSaveMetadata = (data?: IMetaDataReturnJSONSettings) => {
-    form.setValue('parser_config.metadata', data || []);
+  const handleSaveMetadata = (data?: {
+    metadata?: IMetaDataReturnJSONSettings;
+    builtInMetadata?: IBuiltInMetadataItem[];
+  }) => {
+    form.setValue('parser_config.metadata', data?.metadata || []);
+    form.setValue(
+      'parser_config.built_in_metadata',
+      data?.builtInMetadata || [],
+    );
+    form.setValue('parser_config.enable_metadata', true);
   };
   return (
     <>
@@ -460,9 +508,19 @@ export function AutoMetadata({
           isShowDescription={true}
           isShowValueSwitch={true}
           isVerticalShowValue={false}
-          success={(data?: IMetaDataReturnJSONSettings) => {
+          builtInMetadata={metadataConfig.builtInMetadata}
+          secondTitle={metadataConfig.secondTitle}
+          success={(data?: {
+            metadata?: IMetaDataReturnJSONSettings;
+            builtInMetadata?: IBuiltInMetadataItem[];
+          }) => {
             handleSaveMetadata(data);
           }}
+          testId="ds-settings-metadata-modal"
+          okButtonTestId="ds-settings-metadata-modal-save-btn"
+          addButtonTestId="ds-settings-metadata-add-btn"
+          nestedModalTestId="ds-settings-metadata-add-modal"
+          nestedModalOkButtonTestId="ds-settings-metadata-add-modal-confirm-btn"
         />
       )}
     </>
@@ -515,7 +573,6 @@ export function LLMModelItem({ line = 1, isEdit, label, name }: IProps) {
               })}
             >
               <FormLabel
-                required
                 tooltip={t('globalIndexModelTip')}
                 className={cn('text-sm  whitespace-wrap ', {
                   'w-1/4': line === 1,

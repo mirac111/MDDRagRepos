@@ -14,11 +14,15 @@
 #  limitations under the License.
 #
 
+import os
 from enum import Enum, IntEnum
 from strenum import StrEnum
 
 SERVICE_CONF = "service_conf.yaml"
 RAG_FLOW_SERVICE_NAME = "ragflow"
+SANDBOX_ARTIFACT_BUCKET = os.environ.get("SANDBOX_ARTIFACT_BUCKET", "sandbox-artifacts")
+SANDBOX_ARTIFACT_EXPIRE_DAYS = int(os.environ.get("SANDBOX_ARTIFACT_EXPIRE_DAYS", "7"))
+
 
 class CustomEnum(Enum):
     @classmethod
@@ -68,13 +72,13 @@ class ActiveEnum(Enum):
 
 
 class LLMType(StrEnum):
-    CHAT = 'chat'
-    EMBEDDING = 'embedding'
-    SPEECH2TEXT = 'speech2text'
-    IMAGE2TEXT = 'image2text'
-    RERANK = 'rerank'
-    TTS = 'tts'
-    OCR = 'ocr'
+    CHAT = "chat"
+    EMBEDDING = "embedding"
+    SPEECH2TEXT = "speech2text"
+    IMAGE2TEXT = "image2text"
+    RERANK = "rerank"
+    TTS = "tts"
+    OCR = "ocr"
 
 
 class TaskStatus(StrEnum):
@@ -86,8 +90,7 @@ class TaskStatus(StrEnum):
     SCHEDULE = "5"
 
 
-VALID_TASK_STATUS = {TaskStatus.UNSTART, TaskStatus.RUNNING, TaskStatus.CANCEL, TaskStatus.DONE, TaskStatus.FAIL,
-                     TaskStatus.SCHEDULE}
+VALID_TASK_STATUS = {TaskStatus.UNSTART, TaskStatus.RUNNING, TaskStatus.CANCEL, TaskStatus.DONE, TaskStatus.FAIL, TaskStatus.SCHEDULE}
 
 
 class ParserType(StrEnum):
@@ -140,6 +143,11 @@ class FileSource(StrEnum):
     IMAP = "imap"
     BITBUCKET = "bitbucket"
     ZENDESK = "zendesk"
+    SEAFILE = "seafile"
+    MYSQL = "mysql"
+    POSTGRESQL = "postgresql"
+    DINGTALK_AI_TABLE = "dingtalk_ai_table"
+
 
 class PipelineTaskType(StrEnum):
     PARSE = "Parse"
@@ -150,14 +158,16 @@ class PipelineTaskType(StrEnum):
     MEMORY = "Memory"
 
 
-VALID_PIPELINE_TASK_TYPES = {PipelineTaskType.PARSE, PipelineTaskType.DOWNLOAD, PipelineTaskType.RAPTOR,
-                             PipelineTaskType.GRAPH_RAG, PipelineTaskType.MINDMAP}
+VALID_PIPELINE_TASK_TYPES = {PipelineTaskType.PARSE, PipelineTaskType.DOWNLOAD, PipelineTaskType.RAPTOR, PipelineTaskType.GRAPH_RAG, PipelineTaskType.MINDMAP}
+
 
 class MCPServerType(StrEnum):
     SSE = "sse"
     STREAMABLE_HTTP = "streamable-http"
 
+
 VALID_MCP_SERVER_TYPES = {MCPServerType.SSE, MCPServerType.STREAMABLE_HTTP}
+
 
 class Storage(Enum):
     MINIO = 1
@@ -170,10 +180,10 @@ class Storage(Enum):
 
 
 class MemoryType(Enum):
-    RAW = 0b0001          # 1 << 0 = 1 (0b00000001)
-    SEMANTIC = 0b0010     # 1 << 1 = 2 (0b00000010)
-    EPISODIC = 0b0100     # 1 << 2 = 4 (0b00000100)
-    PROCEDURAL = 0b1000   # 1 << 3 = 8 (0b00001000)
+    RAW = 0b0001  # 1 << 0 = 1 (0b00000001)
+    SEMANTIC = 0b0010  # 1 << 1 = 2 (0b00000010)
+    EPISODIC = 0b0100  # 1 << 2 = 4 (0b00000100)
+    PROCEDURAL = 0b1000  # 1 << 3 = 8 (0b00001000)
 
 
 class MemoryStorageType(StrEnum):
@@ -217,6 +227,9 @@ class ForgettingPolicy(StrEnum):
 # ENV_MINERU_OUTPUT_DIR = "MINERU_OUTPUT_DIR"
 # ENV_MINERU_BACKEND = "MINERU_BACKEND"
 # ENV_MINERU_DELETE_OUTPUT = "MINERU_DELETE_OUTPUT"
+# ENV_DOCLING_SERVER_URL = "DOCLING_SERVER_URL"
+# ENV_DOCLING_OUTPUT_DIR = "DOCLING_OUTPUT_DIR"
+# ENV_DOCLING_DELETE_OUTPUT = "DOCLING_DELETE_OUTPUT"
 # ENV_TCADP_OUTPUT_DIR = "TCADP_OUTPUT_DIR"
 # ENV_LM_TIMEOUT_SECONDS = "LM_TIMEOUT_SECONDS"
 # ENV_LLM_MAX_RETRIES = "LLM_MAX_RETRIES"
@@ -243,4 +256,11 @@ MINERU_DEFAULT_CONFIG = {
     "MINERU_BACKEND": "pipeline",
     "MINERU_SERVER_URL": "",
     "MINERU_DELETE_OUTPUT": 1,
+}
+
+PADDLEOCR_ENV_KEYS = ["PADDLEOCR_API_URL", "PADDLEOCR_ACCESS_TOKEN", "PADDLEOCR_ALGORITHM"]
+PADDLEOCR_DEFAULT_CONFIG = {
+    "PADDLEOCR_API_URL": "",
+    "PADDLEOCR_ACCESS_TOKEN": None,
+    "PADDLEOCR_ALGORITHM": "PaddleOCR-VL",
 }

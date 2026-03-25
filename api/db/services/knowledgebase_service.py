@@ -397,7 +397,7 @@ class KnowledgebaseService(CommonService):
         if dataset_name == "":
             return False, get_data_error_result(message="Dataset name can't be empty.")
         if len(dataset_name.encode("utf-8")) > DATASET_NAME_LIMIT:
-            return False, get_data_error_result(message=f"Dataset name length is {len(dataset_name)} which is larger than {DATASET_NAME_LIMIT}")
+            return False, get_data_error_result(message=f"Dataset name length is {len(dataset_name)} which is large than {DATASET_NAME_LIMIT}")
 
         # Deduplicate name within tenant
         dataset_name = duplicate_name(
@@ -433,7 +433,7 @@ class KnowledgebaseService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_list(cls, joined_tenant_ids, user_id,
-                 page_number, items_per_page, orderby, desc, id, name):
+                 page_number, items_per_page, orderby, desc, id, name, keywords, parser_id=None):
         # Get list of knowledge bases with filtering and pagination
         # Args:
         #     joined_tenant_ids: List of tenant IDs
@@ -444,6 +444,8 @@ class KnowledgebaseService(CommonService):
         #     desc: Boolean indicating descending order
         #     id: Optional ID filter
         #     name: Optional name filter
+        #     keywords: Optional keywords filter
+        #     parser_id: Optional parser ID filter
         # Returns:
         #     List of knowledge bases
         #     Total count of knowledge bases
@@ -452,6 +454,11 @@ class KnowledgebaseService(CommonService):
             kbs = kbs.where(cls.model.id == id)
         if name:
             kbs = kbs.where(cls.model.name == name)
+        if keywords:
+            kbs = kbs.where(fn.LOWER(cls.model.name).contains(keywords.lower()))
+        if parser_id:
+            kbs = kbs.where(cls.model.parser_id == parser_id)
+
         kbs = kbs.where(
             ((cls.model.tenant_id.in_(joined_tenant_ids) & (cls.model.permission ==
                                                             TenantPermission.TEAM.value)) | (
@@ -564,3 +571,14 @@ class KnowledgebaseService(CommonService):
             'update_date': datetime_format(datetime.now())
         }
         return cls.model.update(update_dict).where(cls.model.id == kb_id).execute()
+
+    @classmethod
+    @DB.connection_context()
+    def get_null_tenant_embd_id_row(cls):
+        fields = [
+            cls.model.id,
+            cls.model.tenant_id,
+            cls.model.embd_id
+        ]
+        objs = cls.model.select(*fields).where(cls.model.tenant_embd_id.is_null())
+        return list(objs)
