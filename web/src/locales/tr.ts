@@ -752,6 +752,9 @@ Bu otomatik etiketleme özelliği, mevcut datasete alanına özgü bilgi katman�
       delete: 'Sil',
     },
     chat: {
+      chatSupport: 'Sohbet Desteği',
+      replyInstantly: 'Genellikle anında yanıt veririz',
+      typeYourMessage: 'Mesajınızı yazın...',
       messagePlaceholder: 'Mesajınızı buraya yazın...',
       exit: 'Çıkış',
       multipleModels: 'Birden fazla model',
@@ -970,6 +973,7 @@ Bu otomatik etiketleme özelliği, mevcut datasete alanına özgü bilgi katman�
       selectModelPlaceholder: 'Model seçin',
       configureModelTitle: 'Modeli yapılandır',
       connectorNameTip: 'Bağlayıcı için açıklayıcı bir ad',
+      syncDeletedFiles: 'Silinen dosyaları eşitle',
       confluenceIsCloudTip:
         'Bu bir Confluence Cloud örneği ise işaretleyin, Confluence Server/Data Center için işareti kaldırın',
       confluenceWikiBaseUrlTip:
@@ -1625,10 +1629,8 @@ Bu otomatik etiketleme özelliği, mevcut datasete alanına özgü bilgi katman�
       searXNG: 'SearXNG',
       searXNGDescription:
         "Sağlanan SearXNG örnek URL'si üzerinden arama yapan bir bileşen.",
-      pdfGenerator: 'Belge Oluşturucu',
-      pDFGenerator: 'Belge Oluşturucu',
-      pdfGeneratorDescription: `Markdown biçimli içerikten belgeler (PDF, DOCX, TXT) oluşturan bir bileşen.`,
-      pDFGeneratorDescription: `Markdown biçimli içerikten belgeler (PDF, DOCX, TXT) oluşturan bir bileşen.`,
+      docGenerator: 'Belge Oluşturucu',
+      docGeneratorDescription: `Markdown içeriğinden bir dosya oluşturur.`,
       subtitle: 'Alt başlık',
       logoImage: 'Logo Görüntüsü',
       logoPosition: 'Logo Konumu',
@@ -2179,12 +2181,10 @@ Bu otomatik etiketleme özelliği, mevcut datasete alanına özgü bilgi katman�
       tokenizerRequired: 'Lütfen önce İndeksleyici düğümü ekleyin',
       tokenizerDescription:
         'Metni seçilen arama yöntemine bağlı olarak gerekli veri yapısına dönüştürür.',
-      splitter: 'Token',
-      splitterDescription:
+      tokenChunkerDescription:
         'Metni isteğe bağlı sınırlayıcılar ve örtüşme ile token uzunluğuna göre parçalara böler.',
-      hierarchicalMergerDescription:
+      titleChunkerDescription:
         'Belgeleri daha ince kontrol için regex kurallarıyla başlık hiyerarşisine göre bölümlere böler.',
-      hierarchicalMerger: 'Başlık',
       extractor: 'Dönüştürücü',
       extractorDescription:
         'Belge parçalarından yapılandırılmış içgörüler çıkarmak için LLM kullanır.',
@@ -2196,6 +2196,8 @@ Bu otomatik etiketleme özelliği, mevcut datasete alanına özgü bilgi katman�
         image: 'Görüntü',
         email: 'E-posta',
         'text&markdown': 'Metin ve Biçimlendirme',
+        code: 'Code',
+        html: 'HTML',
         word: 'Word',
         slides: 'PPTX',
         audio: 'Ses',
