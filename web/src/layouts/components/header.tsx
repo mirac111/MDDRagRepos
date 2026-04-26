@@ -1,12 +1,3 @@
-import { IconFontFill } from '@/components/icon-font';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useChangeLanguage } from '@/hooks/logic-hooks';
 import {
   useFetchUserInfo,
@@ -15,12 +6,9 @@ import {
 import { cn } from '@/lib/utils';
 import { TenantRole } from '@/pages/user-setting/constants';
 import { Routes } from '@/routes';
-import { LucideChevronDown, LucideCircleHelp } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router';
-import { BellButton } from './bell-button';
 import GlobalNavbar from './global-navbar';
-import ThemeButton from './theme-button';
 
 import { supportedLanguages } from '@/locales/config';
 
@@ -68,7 +56,7 @@ export function Header({
       </div>
 
       <GlobalNavbar />
-
+      {/*
       <div
         className="flex items-center justify-end gap-4 text-text-badge"
         data-testid="auth-status"
@@ -137,12 +125,10 @@ export function Header({
             isPerson
             className="size-8"
           />
-          {/* Temporarily hidden */}
-          {/* <Badge className="h-5 w-8 absolute font-normal p-0 justify-center -right-8 -top-2 text-bg-base bg-gradient-to-l from-[#42D7E7] to-[#478AF5]">
-            Pro
-          </Badge> */}
+           
+
         </Link>
-      </div>
+      </div>*/}
     </header>
   );
 }

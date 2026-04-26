@@ -724,7 +724,9 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       sut: 'SUT parser',
       tableSut: 'Table SUT parser',
       sut_teblig: 'SUT Teblig',
+      sut_sgk: 'SUT SGK',
       ek4g: 'EK4G',
+      ek4f: 'EK4F',
       lastWeek: 'from last week',
     },
     chunk: {

@@ -114,6 +114,8 @@ class ParserType(StrEnum):
     FI_SUT = "fi_sut"
     SUT_TEBLIG = "sut_teblig"
     EK4G = "ek4g"
+    EK4F = "ek4f"
+    SUT_SGK = "sut_sgk"
 
 
 class FileSource(StrEnum):

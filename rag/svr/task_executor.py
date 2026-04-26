@@ -69,7 +69,7 @@ from api.db.joint_services.tenant_model_service import get_model_config_by_type_
 from common.versions import get_ragflow_version
 from api.db.db_models import close_connection
 from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, \
-    email, tag, sut, table_sut, fi_sut, sut_teblig, ek4g
+    email, tag, sut, table_sut, fi_sut, sut_teblig, ek4g, ek4f, sut_sgk
 from rag.nlp import search, rag_tokenizer, add_positions
 from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
 from common.token_utils import num_tokens_from_string, truncate
@@ -103,7 +103,9 @@ FACTORY = {
     ParserType.SUT.value: sut,
     ParserType.FI_SUT.value: fi_sut,
     ParserType.SUT_TEBLIG.value: sut_teblig,
-    ParserType.EK4G.value: ek4g
+    ParserType.EK4G.value: ek4g,
+    ParserType.EK4F.value: ek4f,
+    ParserType.SUT_SGK.value: sut_sgk
 }
 
 TASK_TYPE_TO_PIPELINE_TASK_TYPE = {

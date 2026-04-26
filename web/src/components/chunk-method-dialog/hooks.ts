@@ -31,7 +31,9 @@ const ParserListMap = new Map([
       'knowledge_graph',
       'sut',
       'sut_teblig',
+      'sut_sgk',
       'ek4g',
+      'ek4f',
     ],
   ],
   [
