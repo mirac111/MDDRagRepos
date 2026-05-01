@@ -57,7 +57,7 @@ if (nw <= 0.0) {
 }
 """
 
-
+ 
 @singleton
 class ESConnection(ESConnectionBase):
     """
@@ -70,7 +70,7 @@ class ESConnection(ESConnectionBase):
             body=query,
             timeout="600s",
             track_total_hits=track_total_hits,
-            _source=True,
+            #_source=True,
         )
 
     def _search_with_search_after(self, index_names: list[str], query: dict, offset: int, limit: int):

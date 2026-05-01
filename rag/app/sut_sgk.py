@@ -106,6 +106,7 @@ BOLUMLER = [
     {
         "baslangic":   "DÖRDÜNCÜ BÖLÜM",
         "bitis":       "BEŞİNCİ BÖLÜM",
+        "max_tokens":  768, 
         "madde_max":   6,
         "madde_depth": "standart",
         "madde_re":    "tolerant",
@@ -449,7 +450,7 @@ def chunk_olustur(path_titles: list, lines: list) -> str:
     tum_satirlar = [s for s in path_titles + lines if s.strip()]
     return "\n".join(tum_satirlar)
 
-def greedy_grupla(sonuclar: list) -> list:
+def greedy_grupla(sonuclar: list, max_tokens: int) -> list:
     gruplar = []
     mevcut_token = 0
     mevcut_lines = []
@@ -462,7 +463,7 @@ def greedy_grupla(sonuclar: list) -> list:
             continue
         c_token = sonuc["token"]
         c_lines = sonuc["lines"]
-        if mevcut_lines and (mevcut_token + c_token > MAX_TOKENS):
+        if mevcut_lines and (mevcut_token + c_token > max_tokens):
             gruplar.append({"token": mevcut_token, "lines": mevcut_lines})
             mevcut_token = c_token
             mevcut_lines = c_lines[:]
@@ -473,7 +474,7 @@ def greedy_grupla(sonuclar: list) -> list:
         gruplar.append({"token": mevcut_token, "lines": mevcut_lines})
     return gruplar
 
-def process(node: dict, path_titles: list, all_chunks: list) -> dict:
+def process(node: dict, path_titles: list, all_chunks: list, max_tokens: int) -> dict:
     kendi_token = token_say(node["text"])
     kendi_line  = node.get("indent", "") + node["text"]
     if not node.get("children"):
@@ -481,11 +482,11 @@ def process(node: dict, path_titles: list, all_chunks: list) -> dict:
     cocuk_path = path_titles + [node["text"]]
     cocuk_sonuclari = []
     for cocuk in node["children"]:
-        cocuk_sonuclari.append(process(cocuk, cocuk_path, all_chunks))
-    gruplar = greedy_grupla(cocuk_sonuclari)
+        cocuk_sonuclari.append(process(cocuk, cocuk_path, all_chunks, max_tokens))
+    gruplar = greedy_grupla(cocuk_sonuclari, max_tokens)
     yazilmamis_token = sum(s["token"] for s in cocuk_sonuclari if not s["yazildi"])
     toplam_token = kendi_token + yazilmamis_token
-    if len(gruplar) == 1 and toplam_token <= MAX_TOKENS:
+    if len(gruplar) == 1 and toplam_token <= max_tokens:
         return {
             "token":   toplam_token,
             "lines":   [kendi_line] + gruplar[0]["lines"],
@@ -495,10 +496,10 @@ def process(node: dict, path_titles: list, all_chunks: list) -> dict:
         all_chunks.append(chunk_olustur(cocuk_path, grup["lines"]))
     return {"token": kendi_token, "lines": [kendi_line], "yazildi": True}
 
-def json_to_chunks(tree: list) -> list:
+def json_to_chunks(tree: list, max_tokens: int) -> list:
     all_chunks = []
     for top_node in tree:
-        sonuc = process(top_node, [], all_chunks)
+        sonuc = process(top_node, [], all_chunks, max_tokens)
         if not sonuc["yazildi"]:
             all_chunks.append(chunk_olustur([], sonuc["lines"]))
     return all_chunks
@@ -506,6 +507,7 @@ def json_to_chunks(tree: list) -> list:
 # ── Tek bölümü işle ───────────────────────────────────────────────────────────
 
 def isle_bolum(doc, cfg: dict) -> list:
+    max_tokens = cfg.get("max_tokens", MAX_TOKENS)
     in_content       = False
     skip_metin_count = 0
     list_counters    = {}
@@ -653,7 +655,7 @@ def isle_bolum(doc, cfg: dict) -> list:
         stack[-1]["children"].append(node)
         stack.append(node)
 
-    return json_to_chunks(root["children"])
+    return json_to_chunks(root["children"], max_tokens)
 
 # ── RAGFlow Entegrasyon Fonksiyonu ────────────────────────────────────────────
 
