@@ -90,7 +90,7 @@ class Graph:
         self._tenant_id = tenant_id
         self.task_id = task_id if task_id else get_uuid()
         self.custom_header = custom_header
-        self._thread_pool = ThreadPoolExecutor(max_workers=20)
+        self._thread_pool = ThreadPoolExecutor(max_workers=40)
         self.load()
 
     def load(self):
@@ -445,7 +445,7 @@ class Canvas(Graph):
 
             loop = asyncio.get_running_loop()
             tasks = []
-            max_concurrency = getattr(self._thread_pool, "_max_workers", 5)
+            max_concurrency = getattr(self._thread_pool, "_max_workers", 20)
             sem = asyncio.Semaphore(max_concurrency)
 
             async def _invoke_one(cpn_obj, sync_fn, call_kwargs, use_async: bool):
