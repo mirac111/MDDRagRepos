@@ -50,7 +50,6 @@ func NewRouter(
 	documentHandler *handler.DocumentHandler,
 	datasetsHandler *handler.DatasetsHandler,
 	systemHandler *handler.SystemHandler,
-	knowledgebaseHandler *handler.KnowledgebaseHandler,
 	chunkHandler *handler.ChunkHandler,
 	llmHandler *handler.LLMHandler,
 	chatHandler *handler.ChatHandler,
@@ -63,23 +62,22 @@ func NewRouter(
 	providerHandler *handler.ProviderHandler,
 ) *Router {
 	return &Router{
-		authHandler:          authHandler,
-		userHandler:          userHandler,
-		tenantHandler:        tenantHandler,
-		documentHandler:      documentHandler,
-		datasetsHandler:      datasetsHandler,
-		systemHandler:        systemHandler,
-		knowledgebaseHandler: knowledgebaseHandler,
-		chunkHandler:         chunkHandler,
-		llmHandler:           llmHandler,
-		chatHandler:          chatHandler,
-		chatSessionHandler:   chatSessionHandler,
-		connectorHandler:     connectorHandler,
-		searchHandler:        searchHandler,
-		fileHandler:          fileHandler,
-		memoryHandler:        memoryHandler,
-		skillSearchHandler:   skillSearchHandler,
-		providerHandler:      providerHandler,
+		authHandler:        authHandler,
+		userHandler:        userHandler,
+		tenantHandler:      tenantHandler,
+		documentHandler:    documentHandler,
+		datasetsHandler:    datasetsHandler,
+		systemHandler:      systemHandler,
+		chunkHandler:       chunkHandler,
+		llmHandler:         llmHandler,
+		chatHandler:        chatHandler,
+		chatSessionHandler: chatSessionHandler,
+		connectorHandler:   connectorHandler,
+		searchHandler:      searchHandler,
+		fileHandler:        fileHandler,
+		memoryHandler:      memoryHandler,
+		skillSearchHandler: skillSearchHandler,
+		providerHandler:    providerHandler,
 	}
 }
 
@@ -89,19 +87,27 @@ func (r *Router) Setup(engine *gin.Engine) {
 	engine.GET("/health", r.systemHandler.Health)
 
 	// System endpoints
-	engine.GET("/v1/system/ping", r.systemHandler.Ping)
-	engine.GET("/api/v1/system/config", r.systemHandler.GetConfig)
 	engine.GET("/v1/system/configs", r.systemHandler.GetConfigs)
-	engine.GET("/api/v1/system/version", r.systemHandler.GetVersion)
-	engine.POST("/v1/user/register", r.userHandler.Register)
-	// User login channels endpoint
-	engine.GET("/api/v1/auth/login/channels", r.userHandler.GetLoginChannels)
-
-	// User login by email endpoint
-	engine.POST("/api/v1/auth/login", r.userHandler.LoginByEmail)
+	//engine.POST("/v1/user/register", r.userHandler.Register)
 
 	// User logout endpoint
 	engine.GET("/v1/user/logout", r.userHandler.Logout)
+
+	apiNoAuth := engine.Group("/api/v1")
+	{
+		apiNoAuth.GET("/system/ping", r.systemHandler.Ping)
+		apiNoAuth.GET("/system/config", r.systemHandler.GetConfig)
+		apiNoAuth.GET("/system/version", r.systemHandler.GetVersion)
+
+		// User login channels endpoint
+		apiNoAuth.GET("/auth/login/channels", r.userHandler.GetLoginChannels)
+
+		// User login by email endpoint
+		apiNoAuth.POST("/auth/login", r.userHandler.LoginByEmail)
+
+		// Register
+		apiNoAuth.POST("/users", r.userHandler.Register)
+	}
 
 	// Protected routes
 	authorized := engine.Group("")
@@ -127,7 +133,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			auth := v1.Group("/auth")
 			{
 				// User logout endpoint
-				auth.GET("/logout", r.userHandler.Logout)
+				auth.POST("/logout", r.userHandler.Logout)
 			}
 
 			// Users routes
@@ -151,6 +157,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 				documents.GET("/:id", r.documentHandler.GetDocumentByID)
 				documents.PUT("/:id", r.documentHandler.UpdateDocument)
 				documents.DELETE("/:id", r.documentHandler.DeleteDocument)
+				documents.POST("/parse", r.documentHandler.ParseDocuments)
 			}
 
 			// Chat routes
@@ -165,8 +172,13 @@ func (r *Router) Setup(engine *gin.Engine) {
 			datasets := v1.Group("/datasets")
 			{
 				datasets.GET("", r.datasetsHandler.ListDatasets)
+				datasets.GET("/:dataset_id", r.datasetsHandler.GetDataset)
 				datasets.POST("", r.datasetsHandler.CreateDataset)
 				datasets.DELETE("", r.datasetsHandler.DeleteDatasets)
+				datasets.POST("/search", r.chunkHandler.RetrievalTest)
+
+				// Dataset documents
+				datasets.GET("/:dataset_id/documents", r.documentHandler.ListDocuments)
 			}
 
 			// Search routes
@@ -253,6 +265,8 @@ func (r *Router) Setup(engine *gin.Engine) {
 				provider.GET("/:provider_name/instances/:instance_name", r.providerHandler.ShowProviderInstance)
 				provider.GET("/:provider_name/instances/:instance_name/balance", r.providerHandler.ShowInstanceBalance)
 				provider.GET("/:provider_name/instances/:instance_name/connection", r.providerHandler.CheckProviderConnection)
+				provider.GET("/:provider_name/instances/:instance_name/tasks", r.providerHandler.ListTasks)
+				provider.GET("/:provider_name/instances/:instance_name/tasks/:task_id", r.providerHandler.ShowTask)
 				provider.PUT("/:provider_name/instances/:instance_name", r.providerHandler.AlterProviderInstance)
 				provider.DELETE("/:provider_name/instances", r.providerHandler.DropProviderInstance)
 				provider.GET("/:provider_name/instances/:instance_name/models", r.providerHandler.ListInstanceModels)
@@ -260,6 +274,12 @@ func (r *Router) Setup(engine *gin.Engine) {
 				provider.POST("/:provider_name/instances/:instance_name/models", r.providerHandler.AddCustomModel)
 				provider.DELETE("/:provider_name/instances/:instance_name/models", r.providerHandler.DropInstanceModels)
 				v1.POST("/chat/completions", r.providerHandler.ChatToModel)
+				v1.POST("/embeddings", r.providerHandler.EmbedText)
+				v1.POST("/rerank", r.providerHandler.RerankDocument)
+				v1.POST("/audio/transcriptions", r.providerHandler.TranscribeAudio)
+				v1.POST("/audio/speech", r.providerHandler.AudioSpeech)
+				v1.POST("/file/ocr", r.providerHandler.OCRFile)
+				v1.POST("/file/parse", r.providerHandler.ParseFile)
 			}
 
 			model := v1.Group("/models")

@@ -21,7 +21,7 @@ from common.query_base import QueryBase
 from common.doc_store.doc_store_base import MatchDenseExpr, MatchTextExpr
 from common.float_utils import get_float
 from rag.nlp import rag_tokenizer, term_weight, synonym
-
+from rag.utils.redis_conn import REDIS_CONN
 
 def get_vector(txt, emb_mdl, topk=10, similarity=0.1):
     if isinstance(similarity, str) and len(similarity) > 0:
@@ -45,7 +45,6 @@ class MsgTextQuery(QueryBase):
     def __init__(self):
         from rag.utils.redis_conn import REDIS_CONN
         self.tw = term_weight.Dealer()
-        #self.syn = synonym.Dealer()
         self.syn = synonym.Dealer(redis=REDIS_CONN.REDIS if REDIS_CONN.is_alive() else None)
         self.query_fields = [
             "content"

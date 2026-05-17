@@ -27,6 +27,32 @@ A complete reference for RAGFlow's RESTful API. Before proceeding, please ensure
 
 ---
 
+## Deprecated API Aliases
+
+The following v0.24.0 REST API paths are deprecated. They remain available through the backward compatibility layer, but new integrations should use the replacement endpoints.
+
+| Deprecated endpoint | Replacement endpoint |
+|---------------------|----------------------|
+| **POST** `/api/v1/chats_openai/{chat_id}/chat/completions` | **POST** `/api/v1/openai/{chat_id}/chat/completions` |
+| **PUT** `/api/v1/chats/{chat_id}/sessions/{session_id}` | **PATCH** `/api/v1/chats/{chat_id}/sessions/{session_id}` |
+| **POST** `/api/v1/chats/{chat_id}/completions` | **POST** `/api/v1/chat/completions` |
+| **POST** `/api/v1/sessions/related_questions` | **POST** `/api/v1/chat/recommandation` |
+| **PUT** `/api/v1/datasets/{dataset_id}/documents/{document_id}/chunks/{chunk_id}` | **PATCH** `/api/v1/datasets/{dataset_id}/documents/{document_id}/chunks/{chunk_id}` |
+| **GET** `/v1/system/healthz` | **GET** `/api/v1/system/healthz` |
+| **POST** `/api/v1/file/upload` | **POST** `/api/v1/files` |
+| **POST** `/api/v1/file/create` | **POST** `/api/v1/files` |
+| **GET** `/api/v1/file/list` | **GET** `/api/v1/files` |
+| **GET** `/api/v1/file/root_folder` | **GET** `/api/v1/files` |
+| **GET** `/api/v1/file/parent_folder` | **GET** `/api/v1/files/{file_id}/parent` |
+| **GET** `/api/v1/file/all_parent_folder` | **GET** `/api/v1/files/{file_id}/ancestors` |
+| **POST** `/api/v1/file/rm` | **DELETE** `/api/v1/files` |
+| **POST** `/api/v1/file/rename` | **POST** `/api/v1/files/move` |
+| **GET** `/api/v1/file/get/{file_id}` | **GET** `/api/v1/files/{file_id}` |
+| **POST** `/api/v1/file/mv` | **POST** `/api/v1/files/move` |
+| **POST** `/api/v1/file/convert` | **POST** `/api/v1/files/link-to-datasets` |
+
+---
+
 ## OpenAI-Compatible API
 
 ---
@@ -6879,14 +6905,18 @@ Failure:
 
 ### Download attachment
 
-**GET** `/v1/document/download/{attachment_id}`
+**GET** `/api/v1/documents/{doc_id}/download`
+
+:::caution DEPRECATED
+The previous endpoint `GET /v1/document/download/{doc_id}` is deprecated. Please use this endpoint instead.
+:::
 
 Downloads a runtime attachment previously uploaded via the [Upload document](#upload-document) method.
 
 #### Request
 
 - Method: GET
-- URL: `/v1/document/download/{attachment_id}`
+- URL: `/api/v1/documents/{doc_id}/download`
 - Headers:
   - `'Authorization: Bearer <YOUR_API_KEY>'`
 - Query parameter:
@@ -6896,15 +6926,15 @@ Downloads a runtime attachment previously uploaded via the [Upload document](#up
 
 ```bash
 curl --request GET \
-     --url 'http://{address}/v1/document/download/{attachment_id}?ext=pdf' \
+     --url 'http://{address}/api/v1/documents/{doc_id}/download?ext=pdf' \
      --header 'Authorization: Bearer <YOUR_API_KEY>' \
      --output ./downloaded_attachment.pdf
 ```
 
 ##### Request parameters
 
-- `attachment_id`: (*Path parameter*), `string`, *Required*
-  The `id` value returned by the [Upload document](#upload-document) method.
+- `doc_id`: (*Path parameter*), `string`, *Required*
+  The document ID whose attachment should be downloaded.
 - `ext`: (*Query parameter*), `string`, *Optional*
   A file extension hint specifying the response's Content-Type. Defaults to `"markdown"`. Available values:
   - `"markdown"`
