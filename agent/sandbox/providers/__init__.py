@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-
+ 
 """
 Sandbox providers package.
 
@@ -30,7 +30,6 @@ This package contains:
 from .base import SandboxProvider, SandboxInstance, ExecutionResult, SandboxProviderConfigError
 from .manager import ProviderManager
 from .self_managed import SelfManagedProvider
-from .aliyun_codeinterpreter import AliyunCodeInterpreterProvider
 from .e2b import E2BProvider
 from .local import LocalProvider
 
@@ -41,7 +40,6 @@ __all__ = [
     "SandboxProviderConfigError",
     "ProviderManager",
     "SelfManagedProvider",
-    "AliyunCodeInterpreterProvider",
     "E2BProvider",
     "LocalProvider",
 ]

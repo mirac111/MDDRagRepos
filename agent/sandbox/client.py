@@ -75,14 +75,12 @@ def _load_provider_from_settings() -> None:
         # Import and instantiate the provider
         from agent.sandbox.providers import (
             SelfManagedProvider,
-            AliyunCodeInterpreterProvider,
             E2BProvider,
             LocalProvider,
         )
 
         provider_classes = {
             "self_managed": SelfManagedProvider,
-            "aliyun_codeinterpreter": AliyunCodeInterpreterProvider,
             "e2b": E2BProvider,
             "local": LocalProvider,
         }
@@ -183,7 +181,7 @@ def _load_self_managed_provider_config_from_env() -> Dict[str, Any]:
 
     config = {}
     if host:
-        config["endpoint"] = f"http://{host}:{port or '9385'}"
+        config["endpoint"] = f"https://{host}:{port or '9385'}"
     if pool_size:
         config["pool_size"] = pool_size
     return config

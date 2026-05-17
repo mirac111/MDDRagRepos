@@ -977,9 +977,16 @@
         {
             "name": "OpenAI-API-Compatible",
             "logo": "",
-            "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
+            "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION,TEXT RE-RANK",
             "status": "1",
-            "llm": [],
+            "llm": [
+                {
+                    "llm_name": "Qwen/Qwen3-Reranker-4B",
+                    "tags": "RE-RANK,32K",
+                    "max_tokens": 32768,
+                    "model_type": "rerank"
+                }
+            ],
             "rank": "890"
         },
         {

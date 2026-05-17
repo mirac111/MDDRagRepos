@@ -30,7 +30,7 @@ import requests
 
 from .base import SandboxProvider, SandboxInstance, ExecutionResult
 
-
+ 
 class SelfManagedProvider(SandboxProvider):
     """
     Self-managed sandbox provider using Daytona/Docker.
@@ -57,7 +57,7 @@ class SelfManagedProvider(SandboxProvider):
                 - max_retries: Maximum retry attempts (default: 3)
                 - pool_size: Container pool size for info (default: 10)
 
-        Returns:
+        Returns: 
             True if initialization successful, False otherwise
         """
         self.endpoint = config.get("endpoint", "http://localhost:9385")
@@ -73,9 +73,9 @@ class SelfManagedProvider(SandboxProvider):
                     from common import settings
                     if settings.SANDBOX_HOST and settings.SANDBOX_HOST not in self.endpoint:
                         original_endpoint = self.endpoint
-                        self.endpoint = f"http://{settings.SANDBOX_HOST}:9385"
+                        self.endpoint = f"https://{settings.SANDBOX_HOST}"
                         if self.health_check():
-                            import logging
+                            import logging 
                             logging.warning(f"Sandbox self_managed: Connected using settings.SANDBOX_HOST fallback: {self.endpoint} (original: {original_endpoint})")
                             self._initialized = True
                             return True
@@ -362,3 +362,4 @@ class SelfManagedProvider(SandboxProvider):
             return False, "Max retries must be between 0 and 10"
 
         return True, None
+ 

@@ -363,8 +363,12 @@ class CodeExec(ToolBase, ABC):
         try:
             # Try using the new sandbox provider system first
             try:
-                from agent.sandbox.client import execute_code as sandbox_execute_code
                 from agent.sandbox.providers.base import SandboxProviderConfigError
+            except ImportError:
+                SandboxProviderConfigError = Exception
+
+            try:
+                from agent.sandbox.client import execute_code as sandbox_execute_code
 
                 if self.check_if_canceled("CodeExec execution"):
                     return
