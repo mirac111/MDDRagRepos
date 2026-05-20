@@ -32,8 +32,10 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
-from enum import StrEnum
-
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 class LaunchMode(StrEnum):
     SELF_HOST = "self-host"

@@ -24,7 +24,10 @@ from collections.abc import Mapping
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 from agent.tools.base import ToolBase, ToolMeta, ToolParamBase
 from api.db.services.file_service import FileService

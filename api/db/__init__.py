@@ -15,8 +15,10 @@
 #
 
 from enum import IntEnum
-from enum import StrEnum
-
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 class UserTenantRole(StrEnum):
     OWNER = 'owner'

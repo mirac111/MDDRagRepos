@@ -79,15 +79,13 @@ class Dealer:
         except Exception:
             # term.freq is optional file for term frequency data
             # System works with default values if file not exists
-            # logging.warning("Load term.freq FAIL!")
             pass
 
     def pretoken(self, txt, num=False, stpwd=True):
         patt = [
-            r"[~—\t @#%!<>,\.\?\":;'\{\}\[\]_=\(\)\|，。？》•●○↓《；‘’：“”【¥ 】…￥！、·（）×`&\\/「」\\]"
+            r"[~—\t @#%!<>,\.\?\":;'\{\}\[\]_=\(\)\|【¥】`&\/]"
         ]
-        rewt = [
-        ]
+        rewt = []
         for p, r in rewt:
             txt = re.sub(p, r, txt)
 
@@ -101,7 +99,6 @@ class Dealer:
                 if re.match(p, t):
                     tk = "#"
                     break
-            # tk = re.sub(r"([\+\\-])", r"\\\1", tk)
             if tk != "#" and tk:
                 res.append(tk)
         return res
@@ -114,7 +111,7 @@ class Dealer:
         while i < len(tks):
             j = i
             if i == 0 and one_term(tks[i]) and len(
-                    tks) > 1 and (len(tks[i + 1]) > 1 and not re.match(r"[0-9a-zA-Z]", tks[i + 1])):  # 多 工位
+                    tks) > 1 and (len(tks[i + 1]) > 1 and not re.match(r"[0-9a-zA-Z]", tks[i + 1])):
                 res.append(" ".join(tks[0:2]))
                 i = 2
                 continue
@@ -166,8 +163,6 @@ class Dealer:
                 return 0.01
             if not self.ne or t not in self.ne:
                 return 1
-            #m = {"toxic": 2, "func": 1, "corp": 3, "loca": 3, "sch": 3, "stock": 3, "firstnm": 1}
-
             m = {
                 "TANI": 1,
                 "ISLEM": 1,
@@ -182,38 +177,26 @@ class Dealer:
                 "BIRIM_ZAMAN": 1,
                 "KURUMSAL": 1
             }
-
-
             return m[self.ne[t]]
 
         def postag(t):
-            t = rag_tokenizer.tag(t)
-            if t in set(["r", "c", "d"]):
-                return 0.3
-            if t in set(["ns", "nt"]):
-                return 3
-            if t in set(["n"]):
-                return 2
-            if re.match(r"[0-9-]+", t):
-                return 2
+            # Trie tabanlı POS tagging kaldırıldı (Çince'ye özgüydü).
+            # Türkçe için her token varsayılan ağırlık 1 alır.
             return 1
 
         def freq(t):
             if num_space_pattern.match(t):
                 return 3
-            s = rag_tokenizer.freq(t)
+            # Trie tabanlı freq kaldırıldı, s=0 ile devam et
+            s = 0
             if not s and letter_pattern.match(t):
                 return 300
-            if not s:
-                s = 0
-
             if not s and len(t) >= 4:
                 s = [tt for tt in rag_tokenizer.fine_grained_tokenize(t).split() if len(tt) > 1]
                 if len(s) > 1:
                     s = np.min([freq(tt) for tt in s]) / 6.
                 else:
                     s = 0
-
             return max(s, 10)
 
         def df(t):
@@ -227,7 +210,6 @@ class Dealer:
                 s = [tt for tt in rag_tokenizer.fine_grained_tokenize(t).split() if len(tt) > 1]
                 if len(s) > 1:
                     return max(3, np.min([df(tt) for tt in s]) / 6.)
-
             return 3
 
         def idf(s, N):

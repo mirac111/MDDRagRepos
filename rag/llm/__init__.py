@@ -19,8 +19,10 @@
 import importlib
 import inspect
 
-from enum import StrEnum
-
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 class SupportedLiteLLMProvider(StrEnum):
     Tongyi_Qianwen = "Tongyi-Qianwen"

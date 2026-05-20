@@ -52,7 +52,8 @@ class FulltextQueryer(QueryBase):
         txt = re.sub(
             r"[ :|\r\n\t,，。？?/`!！&^%%()\[\]{}<>*~'\"\\]+",
             " ",
-            rag_tokenizer.tradi2simp(rag_tokenizer.strQ2B(txt.lower())),
+            #rag_tokenizer.tradi2simp(rag_tokenizer.strQ2B(txt.lower())),
+            txt.lower(),
         ).strip()
         otxt = txt
         txt = self.rmWWW(txt)

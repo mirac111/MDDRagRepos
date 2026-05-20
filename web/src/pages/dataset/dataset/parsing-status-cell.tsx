@@ -128,6 +128,16 @@ export function ParsingStatusCell({
     handleRunDocumentByIds(record.id, isRunning, option);
   };
 
+  const handleParseButtonClick = () => {
+    const shouldSkipDialog =
+      (isZeroChunk && !record?.parser_config?.enable_metadata) || isRunning;
+    if (shouldSkipDialog) {
+      handleOperationIconClick();
+    } else {
+      showReparseDialogModal();
+    }
+  };
+
   const showParse = useMemo(() => {
     return record.type !== DocumentType.Virtual;
   }, [record]);
@@ -159,7 +169,7 @@ export function ParsingStatusCell({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => showReparseDialogModal()}
+                onClick={() => handleParseButtonClick()}
                 // onClick={
                 //   isZeroChunk || isRunning
                 //     ? handleOperationIconClick(false)
@@ -174,9 +184,7 @@ export function ParsingStatusCell({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => {
-                  showReparseDialogModal();
-                }}
+                onClick={() => handleParseButtonClick()}
               >
                 {operationIcon}
               </Button>
@@ -188,11 +196,7 @@ export function ParsingStatusCell({
       )}
       {reparseDialogVisible && (
         <ReparseDialog
-          hidden={
-            (isZeroChunk && !record?.parser_config?.enable_metadata) ||
-            isRunning
-          }
-          // hidden={false}
+          hidden={false}
           enable_metadata={record?.parser_config?.enable_metadata}
           handleOperationIconClick={handleOperationIconClick}
           chunk_num={chunk_count}

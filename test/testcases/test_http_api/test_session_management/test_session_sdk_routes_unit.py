@@ -123,8 +123,10 @@ def _load_session_module(monkeypatch):
 
     # Mock common.constants module
     from enum import Enum
-    from enum import StrEnum
-
+    try:
+        from enum import StrEnum
+    except ImportError:
+        from strenum import StrEnum
     class _StubLLMType(StrEnum):
         CHAT = "chat"
         EMBEDDING = "embedding"

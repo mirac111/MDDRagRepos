@@ -28,8 +28,10 @@ import json_repair
 import litellm
 import openai
 from openai import AsyncOpenAI, OpenAI
-from enum import StrEnum
-
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 from common.misc_utils import thread_pool_exec
 from common.token_utils import num_tokens_from_string, total_token_count_from_response
 from rag.llm import FACTORY_DEFAULT_BASE_URL, LITELLM_PROVIDER_PREFIX, SupportedLiteLLMProvider
@@ -442,7 +444,8 @@ class Base(ABC):
                 for _round in range(self.max_rounds + 1):
                     reasoning_start = False
                     logging.info(f"[ToolLoop] round={_round} model={self.model_name} tools={[t['function']['name'] for t in tools]}")
-
+                    _real_request = {"model": self.model_name, "stream": True, "tools": tools, "tool_choice": "auto", **gen_conf}
+                    logging.info(f"[REAL API REQUEST] {_real_request}")
                     response = await self.async_client.chat.completions.create(model=self.model_name, messages=history, stream=True, tools=tools, tool_choice="auto", **gen_conf)
 
                     final_tool_calls = {}
@@ -525,6 +528,8 @@ class Base(ABC):
                 logging.warning(f"Exceed max rounds: {self.max_rounds}")
                 history.append({"role": "user", "content": f"Exceed max rounds: {self.max_rounds}"})
 
+                _real_request = {"model": self.model_name, "stream": True, "tools": tools, "tool_choice": "auto", **gen_conf}
+                logging.info(f"[REAL API REQUEST] {_real_request}")
                 response = await self.async_client.chat.completions.create(model=self.model_name, messages=history, stream=True, tools=tools, tool_choice="auto", **gen_conf)
 
                 async for resp in response:
