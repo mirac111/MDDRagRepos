@@ -272,15 +272,15 @@ class LLM(ComponentBase):
 
     async def _generate_async(self, msg: list[dict], **kwargs) -> str:
         if not self.imgs:
-            return await self.chat_mdl.async_chat(msg[0]["content"], msg[1:], self._param.gen_conf(), **kwargs)
-        return await self.chat_mdl.async_chat(msg[0]["content"], msg[1:], self._param.gen_conf(), images=self.imgs, **kwargs)
+            return await self.chat_mdl.async_chat(msg[0]["content"], msg[1:], self._param.gen_conf(), keep_reasoning=True, **kwargs)
+        return await self.chat_mdl.async_chat(msg[0]["content"], msg[1:], self._param.gen_conf(), images=self.imgs, keep_reasoning=True, **kwargs)
 
     async def _generate_streamly(self, msg: list[dict], **kwargs) -> AsyncGenerator[str, None]:
         async def delta_wrapper(txt_iter):
             ans = ""
             last_idx = 0
             endswith_think = False
-
+ 
             def delta(txt):
                 nonlocal ans, last_idx, endswith_think
                 delta_ans = txt[last_idx:]
@@ -425,8 +425,14 @@ class LLM(ComponentBase):
             _, msg_fit = message_fit_in(
                 [{"role": "system", "content": prompt}, *deepcopy(msg)], int(self.chat_mdl.max_length * 0.97)
             )
-            error = ""
-            ans = await self._generate_async(msg_fit)
+            error = "" 
+            ans = ""
+            async for chunk in self.chat_mdl.async_chat_streamly(
+                msg_fit[0]["content"], msg_fit[1:], self._param.gen_conf()
+            ):
+                if isinstance(chunk, int):
+                    break
+                ans = chunk
             msg_fit.pop(0)
             if ans.find("**ERROR**") >= 0:
                 logging.error(f"LLM response error: {ans}")

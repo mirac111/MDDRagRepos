@@ -403,6 +403,8 @@ class LLMBundle(LLM4Tenant):
         if self.langfuse:
             generation = self.langfuse.start_observation(trace_context=self.trace_context, as_type="generation", name="chat", model=self.model_config["llm_name"], input={"system": system, "history": history})
 
+        keep_reasoning = kwargs.pop("keep_reasoning", False)  # ← önce çıkar
+
         chat_partial = partial(base_fn, system, history, gen_conf)
         use_kwargs = self._clean_param(chat_partial, **kwargs)
 
@@ -414,7 +416,8 @@ class LLMBundle(LLM4Tenant):
                 generation.end()
             raise
 
-        txt = self._remove_reasoning_content(txt)
+        if not keep_reasoning:
+            txt = self._remove_reasoning_content(txt)
         if not self.verbose_tool_use:
             txt = re.sub(r"<tool_call>.*?</tool_call>", "", txt, flags=re.DOTALL)
 
@@ -426,7 +429,7 @@ class LLMBundle(LLM4Tenant):
             generation.end()
 
         return txt
-
+ 
     async def async_chat_streamly(self, system: str, history: list, gen_conf: dict = {}, **kwargs):
         total_tokens = 0
         ans = ""
@@ -450,16 +453,16 @@ class LLMBundle(LLM4Tenant):
             try:
                 async for txt in chat_partial(**use_kwargs):
                     if isinstance(txt, int):
-                        total_tokens = txt
+                        total_tokens = txt 
                         break
-
-                    if txt.endswith("</think>") and ans.endswith("</think>"):
-                        ans = ans[: -len("</think>")]
 
                     if not self.verbose_tool_use:
                         txt = re.sub(r"<tool_call>.*?</tool_call>", "", txt, flags=re.DOTALL)
 
-                    ans += txt
+                    if txt.startswith("<think>"):
+                        ans = txt
+                    else:
+                        ans += txt
                     yield ans
             except Exception as e:
                 if generation:

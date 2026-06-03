@@ -34,6 +34,7 @@ const ParserListMap = new Map([
       'sut_sgk',
       'ek4g',
       'ek4f',
+      'hastakabulchunker'
     ],
   ],
   [

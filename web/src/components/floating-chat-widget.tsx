@@ -14,6 +14,7 @@ import {
   useSendSharedMessage,
 } from '../pages/next-chats/hooks/use-send-shared-message';
 import FloatingChatWidgetMarkdown from './floating-chat-widget-markdown';
+import bizmedIcon from '@/assets/icon/bizmedIcon.png';
 
 /**
  * Normalizes a hex color input and falls back to a safe default when invalid.
@@ -556,8 +557,8 @@ const FloatingChatWidget = () => {
             }}
           >
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <MessageCircle size={18} />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-white bg-opacity-20">
+                <img src={bizmedIcon} alt="Bizmed" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h3
@@ -750,8 +751,8 @@ const FloatingChatWidget = () => {
             }}
           >
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <MessageCircle size={18} />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-white bg-opacity-20">
+                <img src={bizmedIcon} alt="Bizmed" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h3

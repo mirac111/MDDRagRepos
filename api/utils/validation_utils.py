@@ -455,7 +455,7 @@ class UpdateDocumentReq(Base):
         """Validate an optional document parser method."""
         if chunk_method:
             # Validate chunk method if present
-            valid_chunk_method = {"naive", "manual", "qa", "table", "paper", "book", "laws", "presentation", "picture", "one", "knowledge_graph", "email", "tag", "sut", "table_sut", "fi_sut", "sut_teblig", "ek4g", "ek4f", "sut_sgk", "resume"}
+            valid_chunk_method = {"naive", "manual", "qa", "table", "paper", "book", "laws", "presentation", "picture", "one", "knowledge_graph", "email", "tag", "sut", "table_sut", "fi_sut", "sut_teblig", "ek4g", "ek4f", "sut_sgk", "resume", "hastakabulchunker"}
             if chunk_method not in valid_chunk_method:
                 raise PydanticCustomError("format_invalid", "`chunk_method` {chunk_method} doesn't exist", {"chunk_method": chunk_method})
 

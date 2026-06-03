@@ -919,6 +919,7 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       sut_sgk: 'SUT SGK',
       ek4g: 'EK4G',
       ek4f: 'EK4F',
+      hastakabulchunker: 'HASTAKABULCHUNKER',
       lastWeek: 'from last week',
     },
     chunk: {

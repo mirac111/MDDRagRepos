@@ -644,7 +644,7 @@ class BaiChuanChat(Base):
         if not base_url:
             base_url = "https://api.baichuan-ai.com/v1"
         super().__init__(key, model_name, base_url, **kwargs)
-
+ 
     @staticmethod
     def _format_params(params):
         return {
@@ -1403,7 +1403,14 @@ class LiteLLMBase(ABC):
 
                 if any([not response.choices, not response.choices[0].message, not response.choices[0].message.content]):
                     return "", 0
-                ans = response.choices[0].message.content.strip()
+
+                message = response.choices[0].message
+                ans = (message.content or "").strip()
+
+                _reasoning = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None)
+                if _reasoning:
+                    ans = f"<think>{_reasoning}</think>{ans}"
+
                 if response.choices[0].finish_reason == "length":
                     ans = self._length_stop(ans)
 
@@ -1627,6 +1634,8 @@ class LiteLLMBase(ABC):
                             return tc, name, {}, None, e
 
                     logging.info(f"Response tool_calls={message.tool_calls}")
+                    if reasoning_content:
+                        ans += f"<think>{reasoning_content}</think>"
                     results = await asyncio.gather(*[_exec_tool(tc) for tc in message.tool_calls])
                     history = self._append_history_batch(
                         history,
@@ -1664,6 +1673,7 @@ class LiteLLMBase(ABC):
         for attempt in range(self.max_retries + 1):
             history = deepcopy(hist)
             try:
+                accumulated_reasoning = ""
                 for _round in range(self.max_rounds + 1):
                     reasoning_start = False
                     reasoning_content = ""
@@ -1691,7 +1701,7 @@ class LiteLLMBase(ABC):
                                 if index not in final_tool_calls:
                                     if not tool_call.function.arguments:
                                         tool_call.function.arguments = ""
-                                    final_tool_calls[index] = tool_call
+                                    final_tool_calls[index] = tool_call 
                                 else:
                                     final_tool_calls[index].function.arguments += tool_call.function.arguments or ""
                             continue
@@ -1703,12 +1713,10 @@ class LiteLLMBase(ABC):
                         if _reasoning:
                             if self._need_reasoning_content_back():
                                 reasoning_content += _reasoning
-                            ans = ""
                             if not reasoning_start:
                                 reasoning_start = True
-                                ans = "<think>"
-                            ans += _reasoning + "</think>"
-                            yield ans
+                            accumulated_reasoning += _reasoning
+                            yield "<think>" + accumulated_reasoning + "</think>"
                         else:
                             reasoning_start = False
                             answer += delta.content

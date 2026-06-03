@@ -125,6 +125,7 @@ class ParserType(StrEnum):
     EK4G = "ek4g"
     EK4F = "ek4f"
     SUT_SGK = "sut_sgk"
+    HASTAKABULCHUNKER = "hastakabulchunker"
 
 
 class FileSource(StrEnum):
