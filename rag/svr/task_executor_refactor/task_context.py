@@ -56,7 +56,11 @@ Usage example::
 import asyncio
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Required, TypedDict
+try:
+    from typing import Any, Callable, Dict, List, Optional, Required, TypedDict
+except ImportError:
+    from typing import Any, Callable, Dict, List, Optional, TypedDict
+    from typing_extensions import Required
 
 from rag.svr.task_executor_refactor.recording_context import BaseRecordingContext
 from rag.svr.task_executor_refactor.write_operation_interceptor import WriteOperationInterceptor
