@@ -127,7 +127,8 @@ async def list_memory():
     }
     keywords = request.args.get("keywords")
     page = int(request.args.get("page", 1))
-    page_size = validate_rest_api_page_size(int(request.args.get("page_size", 50)))
+    #page_size = validate_rest_api_page_size(int(request.args.get("page_size", 50)))
+    page_size = int(request.args.get("page_size", 50))
     try:
         res = await memory_api_service.list_memory(filter_params, keywords, page, page_size)
         return get_json_result(message=True, data=res)

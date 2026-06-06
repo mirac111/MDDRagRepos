@@ -44,7 +44,7 @@ def get_parser(parser_id: str):
     Returns:
         The parser module for the given parser ID.
     """
-    from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, email, tag
+    from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, email, tag, sut, table_sut, fi_sut, sut_teblig, ek4g, ek4f, sut_sgk, hastakabulchunker
 
     factory = {
         "general": naive,
@@ -63,6 +63,14 @@ def get_parser(parser_id: str):
         ParserType.EMAIL.value: email,
         ParserType.KG.value: naive,
         ParserType.TAG.value: tag,
+        ParserType.SUT.value: sut,
+        ParserType.TABLE_SUT.value: table_sut,
+        ParserType.FI_SUT.value: fi_sut,
+        ParserType.SUT_TEBLIG.value: sut_teblig,
+        ParserType.EK4G.value: ek4g,
+        ParserType.EK4F.value: ek4f,
+        ParserType.SUT_SGK.value: sut_sgk,
+        ParserType.HASTAKABULCHUNKER.value: hastakabulchunker,
     }
     return factory[parser_id.lower()]
 

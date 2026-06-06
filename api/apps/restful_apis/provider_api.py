@@ -339,7 +339,8 @@ async def create_provider_instance(tenant_id: str = None, provider_name: str = N
 
     instance_name = data["instance_name"]
     api_key = data["api_key"]
-    base_url = data.get("base_url", "")
+    #base_url = data.get("base_url", "")
+    base_url = data.get("base_url", "") or data.get("api_base", "")
     region = data.get("region", "")
     model_info = data.get("model_info", {})
 
@@ -406,7 +407,8 @@ async def verify_provider_api_key(provider_name: str = None):
     if not data or "api_key" not in data:
         return get_error_argument_result(message="api_key is required")
 
-    base_url = data.get("base_url", "")
+    #base_url = data.get("base_url", "")
+    base_url = data.get("base_url", "") or data.get("api_base", "")
     api_key = data["api_key"]
     region = data.get("region", "default")
     model_info = data.get("model_info", {})

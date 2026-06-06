@@ -355,7 +355,8 @@ async def verify_api_key(provider_name: str, api_key: str|dict, base_url: str=No
     factory_llms = factory_info[0]["llm"]
     if not factory_llms:
         if not model_info:
-            return False, f"No models found for provider '{provider_name}'"
+            #return False, f"No models found for provider '{provider_name}'"
+            return True, "success"  # custom instance, verification skipped
         factory_llms = [{
             "model_type": _type,
             "llm_name": model_info.get("model_name", ""),
@@ -372,7 +373,7 @@ async def verify_api_key(provider_name: str, api_key: str|dict, base_url: str=No
             assert provider_name in EmbeddingModel, f"Embedding model from {provider_name} is not supported yet."
             mdl = EmbeddingModel[provider_name](api_key_str, llm["llm_name"], base_url=base_url)
             try:
-                arr, tc = asyncio.wait_for(
+                arr, tc = await asyncio.wait_for(
                     asyncio.to_thread(mdl.encode, ["Test if the api key is available"]),
                     timeout=timeout_seconds,
                 )

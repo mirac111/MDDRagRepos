@@ -1007,14 +1007,7 @@
             "logo": "",
             "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION,TEXT RE-RANK",
             "status": "1",
-            "llm": [
-                {
-                    "llm_name": "Qwen/Qwen3-Reranker-4B",
-                    "tags": "RE-RANK,32K",
-                    "max_tokens": 32768,
-                    "model_type": "rerank"
-                }
-            ],
+            "llm": [],
             "rank": "890"
         },
         {
@@ -3976,34 +3969,6 @@
                     "is_tools": true
                 },
                 {
-                    "llm_name": "claude-opus-4-8",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-opus-4-7",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-opus-4-6",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-opus-4-6",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
                     "llm_name": "claude-sonnet-4-6",
                     "tags": "LLM,CHAT,IMAGE2TEXT,200k",
                     "max_tokens": 204800,
@@ -4012,20 +3977,6 @@
                 },
                 {
                     "llm_name": "claude-haiku-4-5-20251001",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-sonnet-4-6",
-                    "tags": "LLM,CHAT,IMAGE2TEXT,200k",
-                    "max_tokens": 204800,
-                    "model_type": "chat",
-                    "is_tools": true
-                },
-                {
-                    "llm_name": "claude-sonnet-4-6",
                     "tags": "LLM,CHAT,IMAGE2TEXT,200k",
                     "max_tokens": 204800,
                     "model_type": "chat",
@@ -6314,28 +6265,6 @@
                     "tags": "RE-RANK,32K",
                     "max_tokens": 32768,
                     "model_type": "rerank"
-                }
-            ]
-        },
-        {
-            "name": "DiagnosisGenie",
-            "logo": "",
-            "tags": "TEXT EMBEDDING,TEXT RE-RANK",
-            "status": "1",
-            "llm": [
-                {
-                    "llm_name": "bge-m3",
-                    "tags": "TEXT EMBEDDING,8K",
-                    "max_tokens": 8192,
-                    "model_type": "embedding",
-                    "is_tools": false
-                },
-                {
-                    "llm_name": "bge-reranker-v2-m3",
-                    "tags": "TEXT RE-RANK,8K",
-                    "max_tokens": 8192,
-                    "model_type": "rerank",
-                    "is_tools": false
                 }
             ]
         },
