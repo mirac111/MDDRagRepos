@@ -287,7 +287,10 @@ async def _run_workflow_session(
                         final_ans["data"]["trace"] = trace_items
                 await persist_workflow_session()
             except Exception as exc:
-                logging.exception(exc)
+                logging.exception(
+                    "canvas.run() SSE failed: agent_id=%s session_id=%s exc_type=%s exc=%r",
+                    agent_id, session_id, type(exc).__name__, exc,
+                )
                 canvas.cancel_task()
                 yield (
                     "data:"
@@ -323,9 +326,12 @@ async def _run_workflow_session(
                     )
             final_ans = ans
     except Exception as exc:
-        logging.exception(exc)
+        logging.exception(
+            "canvas.run() failed: agent_id=%s session_id=%s exc_type=%s exc=%r",
+            agent_id, session_id, type(exc).__name__, exc,
+        )
         canvas.cancel_task()
-        return get_result(data=f"**ERROR**: {str(exc)}")
+        return get_result(data=f"**ERROR**: {type(exc).__name__}: {str(exc)}")
 
     if not final_ans:
         await commit_runtime_replica()
@@ -396,7 +402,8 @@ async def create_agent_session(agent_id, tenant_id):
     release_mode = bool(req.get("release", request.args.get("release", False)))
 
     try:
-        cvs, dsl = UserCanvasService.get_agent_dsl_with_release(agent_id, release_mode, tenant_id)
+        #cvs, dsl = UserCanvasService.get_agent_dsl_with_release(agent_id, release_mode, tenant_id)
+        cvs, dsl = await thread_pool_exec(UserCanvasService.get_agent_dsl_with_release, agent_id, release_mode, tenant_id)
     except LookupError:
         return get_data_error_result(message="Agent not found.")
     except PermissionError as e:
@@ -407,7 +414,8 @@ async def create_agent_session(agent_id, tenant_id):
     canvas.reset()
 
     cvs.dsl = json.loads(str(canvas))
-    version_title = UserCanvasVersionService.get_latest_version_title(cvs.id, release_mode=release_mode)
+    #version_title = UserCanvasVersionService.get_latest_version_title(cvs.id, release_mode=release_mode)
+    version_title = await thread_pool_exec(UserCanvasVersionService.get_latest_version_title, cvs.id, release_mode=release_mode)
     conv = {
         "id": session_id,
         "name": req.get("name", ""),
@@ -420,7 +428,8 @@ async def create_agent_session(agent_id, tenant_id):
         "reference": [],
         "version_title": version_title,
     }
-    API4ConversationService.save(**conv)
+    #API4ConversationService.save(**conv)
+    await thread_pool_exec(API4ConversationService.save, **conv)
     return get_result(data=_normalize_agent_session(conv))
 
 
@@ -912,7 +921,10 @@ async def get_agent_logs(agent_id, message_id, tenant_id):
         payload = binary.decode("utf-8") if isinstance(binary, bytes) else binary
         return get_json_result(data=json.loads(payload))
     except Exception as exc:
-        logging.exception(exc)
+        logging.exception(
+            "Failed to read agent logs: agent_id=%s message_id=%s exc_type=%s exc=%r",
+            agent_id, message_id, type(exc).__name__, exc,
+        )
         return server_error_response(exc)
 
 

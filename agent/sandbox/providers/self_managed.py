@@ -29,6 +29,9 @@ from typing import Dict, Any, List, Optional
 
 import requests
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from .base import SandboxProvider, SandboxInstance, ExecutionResult
 
  
@@ -160,7 +163,8 @@ class SelfManagedProvider(SandboxProvider):
                 url,
                 json=payload,
                 timeout=exec_timeout,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
+                verify=False
             )
 
             execution_time = time.time() - start_time
@@ -227,7 +231,8 @@ class SelfManagedProvider(SandboxProvider):
         """
         try:
             url = f"{self.endpoint}/healthz"
-            response = requests.get(url, timeout=5)
+            #response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=5, verify=False)
             return response.status_code == 200
         except Exception:
             return False

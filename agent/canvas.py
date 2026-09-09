@@ -702,8 +702,27 @@ class Canvas(Graph):
                            "elapsed_time": time.perf_counter() - st,
                            "created_at": st,
                        })
-            self.history.append(("assistant", self.get_component_obj(self.path[-1]).output()))
+            #self.history.append(("assistant", self.get_component_obj(self.path[-1]).output()))
+            #self.globals["sys.history"].append(f"{self.history[-1][0]}: {self.history[-1][1]}")
+
+            last_output = self.get_component_obj(self.path[-1]).output()
+            if isinstance(last_output, dict):
+                clean_text = last_output.get("content", "")
+                if not isinstance(clean_text, str):
+                    clean_text = str(clean_text) if clean_text is not None else ""
+            else:
+                clean_text = str(last_output) if last_output is not None else ""
+
+            # Thinking bloklarını temizle
+            if isinstance(clean_text, str):
+                first_open = clean_text.find('<think>')
+                last_close = clean_text.rfind('</think>')
+                if first_open != -1 and last_close != -1:
+                    clean_text = (clean_text[:first_open] + clean_text[last_close + len('</think>'):]).strip()
+
+            self.history.append(("assistant", clean_text))
             self.globals["sys.history"].append(f"{self.history[-1][0]}: {self.history[-1][1]}")
+
         elif "Task has been canceled" in self.error:
             yield decorate("workflow_finished",
                        {

@@ -81,7 +81,7 @@ def detect_madde_no_from_text(text: str) -> Optional[str]:
 
 # ── Ana chunker sınıfı ────────────────────────────────────────────────────────
 
-LISTE_ADI = "EK-4/G SADECE YATARAK TEDAVİLERDE KULLANIMI HALİNDE BEDELLERİ ÖDENECEK İLAÇLAR LİSTESİ"
+LISTE_ADI = "EK-4/G SADECE YATARAK TEDAVİLERDE (Yatan ve Gunubirlik başvurular) KULLANIMI HALİNDE BEDELLERİ ÖDENECEK İLAÇLAR LİSTESİ"
 
 
 class Ek4gDocx:

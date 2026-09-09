@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-
+ 
 import asyncio
 import logging
 import math
@@ -2008,13 +2008,37 @@ class PlainParser:
     def __call__(self, filename, from_page=0, to_page=MAXIMUM_PAGE_NUMBER, **kwargs):
         lines = []
         try:
-            self.pdf = pdf2_read(filename if isinstance(filename, str) else BytesIO(filename))
-            for page in self.pdf.pages[from_page:to_page]:
-                lines.extend([t for t in page.extract_text().split("\n")])
+            with sys.modules[LOCK_KEY_pdfplumber]:
+                pdf = pdfplumber.open(filename if isinstance(filename, str) else BytesIO(filename))
+            for page in pdf.pages[from_page:to_page]:
+                tables = page.find_tables()
+                if tables:
+                    table_bboxes = [t.bbox for t in tables]
+                    extracted_tables = page.extract_tables()
+                    for table in extracted_tables:
+                        for row in table:
+                            row_text = " | ".join(
+                                cell.strip() if cell else ""
+                                for cell in row
+                            )
+                            if row_text.strip(" |"):
+                                lines.append(row_text)
+                    non_table_text = page.filter(
+                        lambda obj: not any(
+                            obj.get("x0", 0) >= bbox[0] and obj.get("x1", 0) <= bbox[2] and
+                            obj.get("top", 0) >= bbox[1] and obj.get("bottom", 0) <= bbox[3]
+                            for bbox in table_bboxes
+                        )
+                    ).extract_text()
+                    if non_table_text:
+                        lines.extend([t for t in non_table_text.split("\n") if t.strip()])
+                else:
+                    text = page.extract_text()
+                    if text:
+                        lines.extend([t for t in text.split("\n")])
         except Exception:
-            logging.exception("Outlines exception")
+            logging.exception("PlainParser exception")
         self.outlines = extract_pdf_outlines(filename)
-
         return [(line, "") for line in lines], []
 
     def crop(self, ck, need_position):
@@ -2023,7 +2047,6 @@ class PlainParser:
     @staticmethod
     def remove_tag(txt):
         raise NotImplementedError
-
 
 class VisionParser(RAGFlowPdfParser):
     def __init__(self, vision_model, *args, **kwargs):

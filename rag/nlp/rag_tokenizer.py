@@ -95,3 +95,4 @@ tokenize = tokenizer.tokenize
 fine_grained_tokenize = tokenizer.fine_grained_tokenize
 loadUserDict = lambda fnm: None  # trie kaldırıldı, geriye dönük uyumluluk için stub
 addUserDict = lambda fnm: None   # trie kaldırıldı, geriye dönük uyumluluk için stub
+tag = lambda word: ""            # Çince POS tagger stub, Türkçe için kullanılmıyor

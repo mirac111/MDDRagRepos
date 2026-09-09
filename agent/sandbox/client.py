@@ -37,15 +37,9 @@ _provider_manager: Optional[ProviderManager] = None
 
 
 def get_provider_manager() -> ProviderManager:
-    """
-    Get the global provider manager instance.
-
-    Returns:
-        ProviderManager instance with active provider loaded
-    """
     global _provider_manager
 
-    if _provider_manager is not None:
+    if _provider_manager is not None and _provider_manager.is_configured():
         return _provider_manager
 
     _provider_manager = ProviderManager()

@@ -101,8 +101,8 @@ export function FileUploadDirectUpload({
       onValueChange={handleFilesChange}
       onUpload={onUpload}
       onFileReject={onFileReject}
-      // TODO： DEFALUT to 5 / 1 for params
-      maxFiles={(maxFiles ?? 5) as number}
+      // TODO： DEFALUT to 50 / 1 for params
+      maxFiles={(maxFiles ?? 50) as number}
       className="w-full"
       multiple={!maxFiles || !!(maxFiles && maxFiles > 1)}
     >
@@ -113,7 +113,7 @@ export function FileUploadDirectUpload({
           </div>
           <p className="font-medium text-sm">Drag & drop files here</p>
           <p className="text-muted-foreground text-xs">
-            Or click to browse (max {(maxFiles ?? 5) as number} files)
+            Or click to browse (max {(maxFiles ?? 50) as number} files)
           </p>
         </div>
         <FileUploadTrigger asChild>

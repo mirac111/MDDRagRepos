@@ -12,7 +12,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
+# 
 import asyncio
 from functools import partial
 import json
@@ -269,6 +269,26 @@ class Retrieval(ToolBase, ABC):
         if not kbinfos["chunks"]:
             self.set_output("formalized_content", self._param.empty_response)
             return
+ 
+        # ===== DEDUP BAŞLANGICI =====
+        if not hasattr(self._canvas, "_seen_chunk_ids"):
+            self._canvas._seen_chunk_ids = {}
+        #_task_id_dedup = getattr(self._canvas, "task_id", "unknown_task")
+        _task_id_dedup = f"{getattr(self._canvas, 'task_id', 'unknown_task')}_{self._id}"
+        if _task_id_dedup not in self._canvas._seen_chunk_ids:
+            self._canvas._seen_chunk_ids[_task_id_dedup] = set()
+
+        seen_dedup = self._canvas._seen_chunk_ids[_task_id_dedup]
+        new_chunks = [ck for ck in kbinfos["chunks"] if ck.get("chunk_id") not in seen_dedup]
+        seen_dedup.update(ck["chunk_id"] for ck in new_chunks if ck.get("chunk_id"))
+
+        if not new_chunks:
+            self.set_output("formalized_content", "Bu sorguda daha önce bulunanların dışında yeni bilgi gelmedi.")
+            self.set_output("json", [])
+            return
+
+        kbinfos["chunks"] = new_chunks
+        # ===== DEDUP BİTİŞİ =====
 
         # Format the chunks for JSON output (similar to how other tools do it)
         json_output = kbinfos["chunks"].copy()

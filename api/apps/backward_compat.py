@@ -43,6 +43,7 @@ Deprecated APIs and their replacements:
 - POST /api/v1/sessions/related_questions -> POST /api/v1/chat/recommandation
 - PUT (chunk update) -> PATCH (chunk update)
 """
+import asyncio
 import logging
 
 from quart import Blueprint, jsonify, request
@@ -648,13 +649,39 @@ async def deprecated_agent_completions(agent_id, tenant_id=None):
 
     Old path: POST /api/v1/agents/{agent_id}/completions
     New path: POST /api/v1/agents/chat/completions
+
+    This endpoint is used by an integration that fires this request and does
+    not wait for or use its response; it retrieves the actual answer later
+    via GET .../sessions/{session_id}. The real work is detached into a
+    background task here so a slow client (or a client that disconnects
+    early) can never cut the agent run short.
     """
     logging.warning(
         "API endpoint /api/v1/agents/%s/completions is deprecated. "
         "Please use /api/v1/agents/chat/completions instead.",
         agent_id,
     )
-    return await agent_api.agent_chat_completion(tenant_id=tenant_id, agent_id=agent_id)
+
+    req = dict(await get_request_json())
+    request._cached_payload = req
+    session_id = req.get("session_id")
+
+    async def _run_detached():
+        try:
+            await agent_api.agent_chat_completion(tenant_id=tenant_id, agent_id=agent_id)
+            logging.info(
+                "[deprecated_agent_completions] background run finished, session_id=%s",
+                session_id,
+            )
+        except Exception:
+            logging.exception(
+                "[deprecated_agent_completions] background run failed, session_id=%s",
+                session_id,
+            )
+
+    asyncio.create_task(_run_detached())
+
+    return get_json_result(data={"session_id": session_id, "status": "accepted"})
 
 def register_backward_compat_routes(app_instance):
     """

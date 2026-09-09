@@ -56,12 +56,16 @@ def retry_deadlock_operation(max_retries=3, retry_delay=0.1):
         return wrapper
 
     return decorator
-
+ 
 
 def retry_db_operation(func):
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
+        wait=wait_exponential(multiplier=0.3, min=0.3, max=0.8),
+        # 1. retry: 0.3 sn bekle
+        # 2. retry: 0.6 sn bekle
+        # 3. retry: 0.8 sn bekle
+        # Toplam: ~1.7 sn
         retry=retry_if_exception_type((InterfaceError, OperationalError)),
         before_sleep=lambda retry_state: print(f"RETRY {retry_state.attempt_number} TIMES"),
         reraise=True,
@@ -277,17 +281,15 @@ class CommonService:
         return num
 
     @classmethod
+    @retry_db_operation
     @DB.connection_context()
     def get_by_id(cls, pid):
-        # Get a record by ID
-        # Args:
-        #     pid: Record ID
-        # Returns:
-        #     Tuple of (success, record)
         try:
             obj = cls.model.get_or_none(cls.model.id == pid)
             if obj:
                 return True, obj
+        except (InterfaceError, OperationalError):
+            raise  # retry_db_operation yakalasın, 3 kez tekrar denesin
         except Exception:
             pass
         return False, None

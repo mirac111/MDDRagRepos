@@ -598,7 +598,8 @@ class FileService(CommonService):
             pass
 
         FACTORY = {ParserType.PRESENTATION.value: presentation, ParserType.PICTURE.value: picture, ParserType.AUDIO.value: audio, ParserType.EMAIL.value: email}
-        parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;:", "layout_recognize": "DeepDOC"}
+        #parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;:", "layout_recognize": "DeepDOC"}
+        parser_config = {"chunk_token_num": 16096, "delimiter": "\n!?;:", "layout_recognize": layout_recognize or "DeepDOC"}
         kwargs = {"lang": "Turkish", "callback": dummy, "parser_config": parser_config, "from_page": 0, "to_page": 100000, "tenant_id": current_user.id if current_user else tenant_id}
         file_type = filename_type(filename)
         if img_base64 and file_type == FileType.VISUAL.value:

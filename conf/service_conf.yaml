@@ -10,8 +10,8 @@ mysql:
   #host: 'localhost' 
   host: '78.188.28.81' #work
   port: 3306
-  max_connections: 900
-  stale_timeout: 300
+  max_connections: 900 
+  stale_timeout: 60
   max_allowed_packet: 1073741824
 minio:
   user: 'rag_flow'
