@@ -32,7 +32,8 @@ import signal
 import sys
 import threading
 import traceback
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
+UTC = timezone.utc
 from typing import Any
 
 from flask import json

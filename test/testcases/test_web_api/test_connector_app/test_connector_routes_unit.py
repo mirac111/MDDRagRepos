@@ -18,7 +18,10 @@ import asyncio
 import importlib.util
 import json
 import sys
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 

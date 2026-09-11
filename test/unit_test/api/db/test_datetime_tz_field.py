@@ -9,7 +9,8 @@ strings. Conversion must never raise: one bad value previously wedged the
 whole sync-task scheduler with "list index out of range".
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 
 from api.db.db_models import DateTimeTzField
 

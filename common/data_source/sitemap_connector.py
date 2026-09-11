@@ -5,7 +5,8 @@ import queue
 import re
 import threading
 from collections.abc import Callable, Iterator
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 from typing import Any
 from urllib.parse import urljoin, urlparse
 from xml.etree import ElementTree as ET

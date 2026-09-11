@@ -6,7 +6,8 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 from unittest.mock import MagicMock
 
 import pytest

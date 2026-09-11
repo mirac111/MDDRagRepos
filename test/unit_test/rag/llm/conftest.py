@@ -27,7 +27,10 @@ works without triggering the full init.
 import os
 import sys
 import types
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 # Resolve the real path to rag/llm/ so sub-module imports can find files
 _RAGFLOW_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))

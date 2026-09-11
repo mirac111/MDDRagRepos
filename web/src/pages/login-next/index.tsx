@@ -27,11 +27,8 @@ import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
-<<<<<<< HEAD
-=======
 import { NICKNAME_PATTERN } from '../user-setting/profile/constants';
-import { BgSvg } from './bg';
->>>>>>> upstream/main
+//import { BgSvg } from './bg';
 import FlipCard3D, { FlipFaceContext } from './card';
 import './index.less';
 

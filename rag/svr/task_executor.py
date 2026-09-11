@@ -84,9 +84,6 @@ from api.db.db_models import close_connection
 from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, \
     email, tag, sut, table_sut, fi_sut, sut_teblig, ek4g, ek4f, sut_sgk, hastakabulchunker
 from rag.nlp import search, rag_tokenizer, add_positions, DEFAULT_DELIMITER
-from rag.raptor import (
-    RAPTOR_TREE_BUILDER,
-)
 from common.token_utils import num_tokens_from_string, truncate
 from rag.utils.redis_conn import REDIS_CONN, RedisDistributedLock
 from rag.graphrag.utils import chat_limiter
