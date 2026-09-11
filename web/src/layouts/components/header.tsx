@@ -8,7 +8,9 @@ import { TenantRole } from '@/pages/user-setting/constants';
 import { Routes } from '@/routes';
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router';
-import GlobalNavbar from './global-navbar';
+import { DesktopNavbar, MobileNavbar } from './global-navbar';
+import { MobileMenuFooter } from './mobile-menu-footer';
+import { useHeaderNavLayout } from './use-header-nav-layout';
 
 import { supportedLanguages } from '@/locales/config';
 
@@ -17,7 +19,6 @@ export function Header({
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const { pathname } = useLocation();
-
   const changeLanguage = useChangeLanguage();
 
   const {
@@ -32,103 +33,161 @@ export function Header({
 
   const currentLanguage = supportedLanguages.find((x) => x.code === language);
 
-  // const langItems = LanguageList.map((x) => ({
-  //   key: x,
-  //   label: <span>{LanguageMap[x as keyof typeof LanguageMap]}</span>,
-  // }));
+  const { headerRef, logoRef, navMeasureRef, isCompact } =
+    useHeaderNavLayout(`${hasNotification}-${language}`);
+
+  // ---------------------------------------------------------------------
+  // Auth-status block (Discord/GitHub links, language switcher, help,
+  // theme toggle, notification bell, user avatar) is intentionally
+  // disabled. Kept here, commented out, in case it needs to be restored.
+  // ---------------------------------------------------------------------
+  // const authStatus = (
+  //   <div
+  //     className={cn(
+  //       'flex shrink-0 items-center justify-end text-text-badge',
+  //       isCompact ? 'gap-0.5' : 'gap-4',
+  //     )}
+  //     data-testid="auth-status"
+  //   >
+  //     {!isCompact && (
+  //       <>
+  //         <LinkTag
+  //           className="inline-flex p-2 text-text-secondary hover:text-text-primary focus-visible:text-text-primary"
+  //           target="_blank"
+  //           href="https://discord.com/invite/NjYzJD3GM3"
+  //           rel="noreferrer noopener"
+  //         >
+  //           <IconFontFill name="a-DiscordIconSVGVectorIcon" />
+  //         </LinkTag>
+  //
+  //         <LinkTag
+  //           className="inline-flex p-2 text-text-secondary hover:text-text-primary focus-visible:text-text-primary"
+  //           target="_blank"
+  //           href="https://github.com/infiniflow/ragflow"
+  //           rel="noreferrer noopener"
+  //         >
+  //           <IconFontFill name="GitHub" />
+  //         </LinkTag>
+  //       </>
+  //     )}
+  //
+  //     <DropdownMenu>
+  //       <DropdownMenuTrigger asChild>
+  //         <Button
+  //           variant="ghost"
+  //           className={cn(
+  //             'size-10 shrink-0 px-0',
+  //             !isCompact && 'size-auto gap-1 px-4',
+  //           )}
+  //           aria-label={currentLanguage?.displayName}
+  //         >
+  //           {isCompact && <LucideLanguages className="size-5" />}
+  //           {!isCompact && (
+  //             <>
+  //               {currentLanguage?.displayName}
+  //               <LucideChevronDown className="size-[1em]" />
+  //             </>
+  //           )}
+  //         </Button>
+  //       </DropdownMenuTrigger>
+  //
+  //       <DropdownMenuContent align="end">
+  //         {supportedLanguages.map((x) => (
+  //           <DropdownMenuItem
+  //             key={x.code}
+  //             onClick={() => changeLanguage(x.code)}
+  //           >
+  //             {x.displayName}
+  //           </DropdownMenuItem>
+  //         ))}
+  //       </DropdownMenuContent>
+  //     </DropdownMenu>
+  //
+  //     {!isCompact && (
+  //       <>
+  //         <Button
+  //           asLink
+  //           variant="ghost"
+  //           size="icon"
+  //           className="size-8"
+  //           to="https://ragflow.io/docs/dev/category/user-guides"
+  //           target="_blank"
+  //           rel="noreferrer noopener"
+  //         >
+  //           <LucideCircleHelp className="size-[1em]" />
+  //         </Button>
+  //
+  //         {hasNotification && <BellButton className="!size-8" />}
+  //       </>
+  //     )}
+  //
+  //     <ThemeButton className={cn(!isCompact && '!size-8')} />
+  //
+  //     <LinkTag
+  //       to={Routes.UserSetting}
+  //       className={cn(
+  //         'relative flex size-10 shrink-0 items-center justify-center',
+  //         !isCompact && 'ms-3',
+  //       )}
+  //       data-testid="settings-entrypoint"
+  //     >
+  //       <RAGFlowAvatar
+  //         name={nickname}
+  //         avatar={avatar}
+  //         isPerson
+  //         className="size-8"
+  //       />
+  //     </LinkTag>
+  //   </div>
+  // );
 
   return (
-    <header
-      key="app-navbar"
-      className={cn(
-        'w-full grid grid-cols-[1fr_auto_1fr] grid-rows-1 items-center gap-8',
-        className,
-      )}
-      {...props}
-    >
-      <div className="inline-flex items-center">
-        <Link
-          to={Routes.Root}
-          aria-current={pathname === Routes.Root ? 'page' : undefined}
-        >
-          <img src={'/logo.svg'} alt="RAGFlow logo" className="size-10" />
-        </Link>
-      </div>
-
-      <GlobalNavbar />
-      {/*
-      <div
-        className="flex items-center justify-end gap-4 text-text-badge"
-        data-testid="auth-status"
+    <>
+      <header
+        ref={headerRef}
+        key="app-navbar"
+        className={cn(
+          'w-full min-w-0 flex items-center gap-2 sm:gap-4',
+          className,
+        )}
+        {...props}
       >
-        <a
-          className="p-2 text-text-secondary hover:text-text-primary focus-visible:text-text-primary"
-          target="_blank"
-          href="https://discord.com/invite/NjYzJD3GM3"
-          rel="noreferrer noopener"
-        >
-          <IconFontFill name="a-DiscordIconSVGVectorIcon" />
-        </a>
+        <div className="inline-flex shrink-0 items-center gap-2">
+          {isCompact && (
+            <MobileNavbar
+              renderFooter={(close: () => void) => (
+                <MobileMenuFooter onClose={close} />
+              )}
+            />
+          )}
+          <div ref={logoRef} className="inline-flex shrink-0 items-center">
+            <Link
+              to={Routes.Root}
+              aria-current={pathname === Routes.Root ? 'page' : undefined}
+              className="flex size-10 shrink-0 items-center justify-center"
+            >
+              <img src={'/logo.svg'} alt="RAGFlow logo" className="size-10" />
+            </Link>
+          </div>
+        </div>
 
-        <a
-          className="p-2 text-text-secondary hover:text-text-primary focus-visible:text-text-primary"
-          target="_blank"
-          href="https://github.com/infiniflow/ragflow"
-          rel="noreferrer noopener"
-        >
-          <IconFontFill name="GitHub" />
-        </a>
+        {!isCompact && (
+          <div className="flex min-w-0 flex-1 justify-center overflow-hidden">
+            <DesktopNavbar />
+          </div>
+        )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="flex items-center gap-1" variant="ghost">
-              {currentLanguage?.displayName}
-              <LucideChevronDown className="size-[1em]" />
-            </Button>
-          </DropdownMenuTrigger>
+        {isCompact && <div className="flex-1" aria-hidden />}
+      </header>
 
-          <DropdownMenuContent>
-            {supportedLanguages.map((x) => (
-              <DropdownMenuItem
-                key={x.code}
-                onClick={() => changeLanguage(x.code)}
-              >
-                {x.displayName}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Button
-          asLink
-          variant="ghost"
-          size="icon"
-          to="https://ragflow.io/docs/dev/category/user-guides"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          <LucideCircleHelp className="size-[1em]" />
-        </Button>
-
-        <ThemeButton />
-
-        {hasNotification && <BellButton />}
-
-        <Link
-          to={Routes.UserSetting}
-          className="relative ms-3"
-          data-testid="settings-entrypoint"
-        >
-          <RAGFlowAvatar
-            name={nickname}
-            avatar={avatar}
-            isPerson
-            className="size-8"
-          />
-           
-
-        </Link>
-      </div>*/}
-    </header>
+      <div
+        className="pointer-events-none invisible fixed -left-[9999px] top-0"
+        aria-hidden
+      >
+        <div ref={navMeasureRef}>
+          <DesktopNavbar />
+        </div>
+      </div>
+    </>
   );
 }

@@ -14,14 +14,43 @@
 #  limitations under the License.
 #
 
+import json
 import logging
 import math
-import json
-import re
 import os
+import re
+import unicodedata
+
 import numpy as np
-from rag.nlp import rag_tokenizer
+
 from common.file_utils import get_project_base_directory
+from rag.nlp import rag_tokenizer
+
+
+def _alphabetic_oov_frequency(term):
+    """Estimate frequency for a Latin, Greek, or Cyrillic OOV term."""
+    letter_count = 0
+    for char in term:
+        if char.isascii():
+            if char.isalpha():
+                letter_count += 1
+            elif char not in " .-":
+                return None
+            continue
+        script_name = unicodedata.name(char, "").split(" ", 1)[0]
+        if char.isalpha() and script_name in {"LATIN", "GREEK", "CYRILLIC"}:
+            letter_count += 1
+        elif char not in " .-":
+            return None
+    if not letter_count:
+        return None
+
+    # Preserve the old frequency (300) for short words, then halve it every
+    # two letters. This is a bounded, language-neutral prior: longer unknown
+    # words are usually more informative, without outranking known terms by an
+    # unbounded amount.
+    exponent = max(0, letter_count - 3) / 2
+    return max(10, round(300 / (2**exponent)))
 
 
 class Dealer:
@@ -49,7 +78,7 @@ class Dealer:
 
         def load_dict(fnm):
             res = {}
-            with open(fnm, "r") as f:
+            with open(fnm, "r", encoding="utf-8") as f:
                 while True:
                     line = f.readline()
                     if not line:
@@ -70,16 +99,17 @@ class Dealer:
         fnm = os.path.join(get_project_base_directory(), "rag/res")
         self.ne, self.df = {}, {}
         try:
-            with open(os.path.join(fnm, "ner.json"), "r") as f:
+            with open(os.path.join(fnm, "ner.json"), "r", encoding="utf-8") as f:
                 self.ne = json.load(f)
         except Exception:
             logging.warning("Load ner.json FAIL!")
+        freq_path = os.path.join(fnm, "term.freq")
         try:
-            self.df = load_dict(os.path.join(fnm, "term.freq"))
-        except Exception:
-            # term.freq is optional file for term frequency data
-            # System works with default values if file not exists
+            self.df = load_dict(freq_path)
+        except FileNotFoundError:
             pass
+        except (OSError, ValueError):
+            logging.warning("Load term.freq FAIL!", exc_info=True)
 
     def pretoken(self, txt, num=False, stpwd=True):
         patt = [
@@ -92,8 +122,7 @@ class Dealer:
         res = []
         for t in rag_tokenizer.tokenize(txt).split():
             tk = t
-            if (stpwd and tk in self.stop_words) or (
-                    re.match(r"[0-9]$", tk) and not num):
+            if (stpwd and tk in self.stop_words) or (re.match(r"[0-9]$", tk) and not num):
                 continue
             for p in patt:
                 if re.match(p, t):
@@ -116,15 +145,14 @@ class Dealer:
                 i = 2
                 continue
 
-            while j < len(
-                    tks) and tks[j] and tks[j] not in self.stop_words and one_term(tks[j]):
+            while j < len(tks) and tks[j] and tks[j] not in self.stop_words and one_term(tks[j]):
                 j += 1
             if j - i > 1:
                 if j - i < 5:
                     res.append(" ".join(tks[i:j]))
                     i = j
                 else:
-                    res.append(" ".join(tks[i:i + 2]))
+                    res.append(" ".join(tks[i : i + 2]))
                     i = i + 2
             else:
                 if len(tks[i]) > 0:
@@ -142,9 +170,7 @@ class Dealer:
     def split(self, txt):
         tks = []
         for t in re.sub(r"[ \t]+", " ", txt).split():
-            if tks and re.match(r".*[a-zA-Z]$", tks[-1]) and \
-                    re.match(r".*[a-zA-Z]$", t) and tks and \
-                    self.ne.get(t, "") != "func" and self.ne.get(tks[-1], "") != "func":
+            if tks and re.match(r".*[a-zA-Z]$", tks[-1]) and re.match(r".*[a-zA-Z]$", t) and tks and self.ne.get(t, "") != "func" and self.ne.get(tks[-1], "") != "func":
                 tks[-1] = tks[-1] + " " + t
             else:
                 tks.append(t)
@@ -154,7 +180,6 @@ class Dealer:
         num_pattern = re.compile(r"[0-9,.]{2,}$")
         short_letter_pattern = re.compile(r"[a-z]{1,2}$")
         num_space_pattern = re.compile(r"[0-9. -]{2,}$")
-        letter_pattern = re.compile(r"[a-z. -]+$")
 
         def ner(t):
             if num_pattern.match(t):
@@ -189,12 +214,14 @@ class Dealer:
                 return 3
             # Trie tabanlı freq kaldırıldı, s=0 ile devam et
             s = 0
-            if not s and letter_pattern.match(t):
-                return 300
+            if not s:
+                oov_frequency = _alphabetic_oov_frequency(t)
+                if oov_frequency is not None:
+                    return oov_frequency
             if not s and len(t) >= 4:
                 s = [tt for tt in rag_tokenizer.fine_grained_tokenize(t).split() if len(tt) > 1]
                 if len(s) > 1:
-                    s = np.min([freq(tt) for tt in s]) / 6.
+                    s = np.min([freq(tt) for tt in s]) / 6.0
                 else:
                     s = 0
             return max(s, 10)
@@ -204,9 +231,10 @@ class Dealer:
                 return 5
             if t in self.df:
                 return self.df[t] + 3
-            elif letter_pattern.match(t):
-                return 300
-            elif len(t) >= 4:
+            oov_frequency = _alphabetic_oov_frequency(t)
+            if oov_frequency is not None:
+                return oov_frequency
+            if len(t) >= 4:
                 s = [tt for tt in rag_tokenizer.fine_grained_tokenize(t).split() if len(tt) > 1]
                 if len(s) > 1:
                     return max(3, np.min([df(tt) for tt in s]) / 6.)
@@ -219,8 +247,7 @@ class Dealer:
         if not preprocess:
             idf1 = np.array([idf(freq(t), 10000000) for t in tks])
             idf2 = np.array([idf(df(t), 1000000000) for t in tks])
-            wts = (0.3 * idf1 + 0.7 * idf2) * \
-                  np.array([ner(t) * postag(t) for t in tks])
+            wts = (0.3 * idf1 + 0.7 * idf2) * np.array([ner(t) * postag(t) for t in tks])
             wts = [s for s in wts]
             tw = list(zip(tks, wts))
         else:
@@ -228,8 +255,7 @@ class Dealer:
                 tt = self.token_merge(self.pretoken(tk, True))
                 idf1 = np.array([idf(freq(t), 10000000) for t in tt])
                 idf2 = np.array([idf(df(t), 1000000000) for t in tt])
-                wts = (0.3 * idf1 + 0.7 * idf2) * \
-                      np.array([ner(t) * postag(t) for t in tt])
+                wts = (0.3 * idf1 + 0.7 * idf2) * np.array([ner(t) * postag(t) for t in tt])
                 wts = [s for s in wts]
                 tw.extend(zip(tt, wts))
 
