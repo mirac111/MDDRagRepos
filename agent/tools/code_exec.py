@@ -374,7 +374,7 @@ class CodeExec(ToolBase, ABC):
                 if self.check_if_canceled("CodeExec execution"):
                     return
 
-                reload_provider()
+                #reload_provider()
                 provider_info = get_provider_info()
                 provider_type = provider_info.get("provider_type") or "unknown"
                 logging.info(f"[CodeExec]: dispatching execution to sandbox provider '{provider_type}' (language={language}, timeout={timeout_seconds}s)")

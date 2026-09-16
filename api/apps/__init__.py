@@ -182,7 +182,7 @@ def _load_user(auth_types=None):
             g.auth_error_message = "Authentication error: API key is invalid!"
 
     # Try JWT decoding
-    if AUTH_JWT in auth_types:
+    if AUTH_JWT in auth_types and not auth_token.lower().startswith("ragflow-"):
         try:
             jwt = Serializer(secret_key=settings.get_secret_key())
             access_token = str(jwt.loads(auth_token))

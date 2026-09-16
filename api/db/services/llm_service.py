@@ -543,7 +543,7 @@ class LLMBundle(LLM4Tenant):
                 async for txt in chat_partial(**use_kwargs):
                     if isinstance(txt, int):
                         total_tokens = txt 
-                        break
+                        continue
 
                     if not self.verbose_tool_use:
                         txt = re.sub(r"<tool_call>.*?</tool_call>", "", txt, flags=re.DOTALL)
@@ -602,7 +602,7 @@ class LLMBundle(LLM4Tenant):
                 async for txt in chat_partial(**use_kwargs):
                     if isinstance(txt, int):
                         total_tokens = txt
-                        break
+                        continue
 
                     if txt.endswith("</think>") and ans.endswith("</think>"):
                         ans = ans[: -len("</think>")]

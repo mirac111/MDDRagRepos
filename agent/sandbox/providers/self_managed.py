@@ -47,7 +47,7 @@ class SelfManagedProvider(SandboxProvider):
         self.endpoint: str = "http://sandbox-executor-manager:9385"
         self.timeout: int = 30
         self.max_retries: int = 3
-        self.pool_size: int = 3
+        self.pool_size: int = 200
         self.api_token: str = ""
         self._initialized: bool = False
 
@@ -60,7 +60,7 @@ class SelfManagedProvider(SandboxProvider):
                 - endpoint: HTTP endpoint (default: "http://sandbox-executor-manager:9385")
                 - timeout: Request timeout in seconds (default: 30)
                 - max_retries: Maximum retry attempts (default: 3)
-                - pool_size: Container pool size for info (default: 3)
+                - pool_size: Container pool size for info (default: 200)
                 - api_token: Shared secret for the executor manager API
                   (falls back to SANDBOX_EXECUTOR_MANAGER_API_TOKEN env var)
 
@@ -70,7 +70,7 @@ class SelfManagedProvider(SandboxProvider):
         self.endpoint = config.get("endpoint", "http://sandbox-executor-manager:9385")
         self.timeout = config.get("timeout", 30)
         self.max_retries = config.get("max_retries", 3)
-        self.pool_size = config.get("executor_manager_pool_size", config.get("pool_size", 3))
+        self.pool_size = config.get("executor_manager_pool_size", config.get("pool_size", 200))
         # Shared-secret token authenticating RAGFlow towards the executor
         # manager. Explicit config wins over the environment variable.
         self.api_token = str(config.get("api_token") or os.getenv("SANDBOX_EXECUTOR_MANAGER_API_TOKEN", "") or "").strip()
@@ -295,9 +295,9 @@ class SelfManagedProvider(SandboxProvider):
                 "type": "integer",
                 "required": False,
                 "label": "Container Pool Size",
-                "default": int(os.getenv("SANDBOX_EXECUTOR_MANAGER_POOL_SIZE", "3")),
+                "default": int(os.getenv("SANDBOX_EXECUTOR_MANAGER_POOL_SIZE", "200")),
                 "min": 1,
-                "max": 100,
+                "max": 200,
                 "description": "Container pool size used by sandbox-executor-manager.",
                 "scope": "deployment",
                 "readonly": True,
@@ -414,7 +414,7 @@ class SelfManagedProvider(SandboxProvider):
                 return False, f"Invalid endpoint format: {endpoint}. Must start with http:// or https://"
 
         # Validate pool_size is positive
-        pool_size = config.get("executor_manager_pool_size", config.get("pool_size", 3))
+        pool_size = config.get("executor_manager_pool_size", config.get("pool_size", 200))
         if isinstance(pool_size, int) and pool_size <= 0:
             return False, "Pool size must be greater than 0"
 

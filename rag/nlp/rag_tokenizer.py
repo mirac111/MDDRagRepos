@@ -66,6 +66,10 @@ class RagTokenizer:
             res.extend(tk.split("/"))
         return " ".join(res)
 
+    def set_language(self, language):
+        # This tokenizer is Turkish-only; language switching is a no-op
+        # kept for compatibility with callers that expect the method to exist.
+        pass
 
 def is_number(s):
     if s >= u'\u0030' and s <= u'\u0039':
