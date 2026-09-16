@@ -2,7 +2,12 @@ import hashlib
 import importlib
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    UTC = timezone.utc
 from types import ModuleType, SimpleNamespace
 
 import pytest

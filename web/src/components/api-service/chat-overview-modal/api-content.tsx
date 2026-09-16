@@ -18,7 +18,7 @@ import { useIsDarkTheme } from '@/components/theme-provider';
 import { Button } from '@/components/ui/button';
 import { useSetModalState, useTranslate } from '@/hooks/common-hooks';
 import { LangfuseCard } from '@/pages/user-setting/setting-model/langfuse';
-import apiDoc from '@parent/docs/references/http_api_reference.md?raw';
+const apiDoc = '';
 import { Loader2 } from 'lucide-react';
 import {
   lazy,
