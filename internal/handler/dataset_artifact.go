@@ -140,6 +140,7 @@ func (h *DatasetArtifactHandler) UpdateArtifact(c *gin.Context) {
 	var req struct {
 		ContentMd string   `json:"content_md"`
 		Title     string   `json:"title"`
+		Comments  string   `json:"comments"`
 		Outlinks  []string `json:"outlinks"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -183,10 +184,10 @@ func (h *DatasetArtifactHandler) UpdateArtifact(c *gin.Context) {
 		}
 		if _, cerr := h.fileCommitSvc.RecordPageEdit(c.Request.Context(), file.PageEditCommitInput{
 			DatasetID:  datasetID,
-			DocID:      pageType + "/" + slug,
 			Slug:       slug,
 			PageType:   pageType,
 			Title:      title,
+			Comments:   req.Comments,
 			AuthorID:   user.ID,
 			OldContent: oldContent,
 			NewContent: req.ContentMd,
@@ -320,13 +321,15 @@ func (h *DatasetArtifactHandler) AnySkill(c *gin.Context) {
 	}
 }
 
-// ListNavigation handles GET /navigation — list navigation clusters.
+// ListNavigation handles GET /navigation — list navigation clusters. The
+// optional keywords query searches navigation rows across the dataset.
 func (h *DatasetArtifactHandler) ListNavigation(c *gin.Context) {
 	_, tenantID, _ := h.datasetOwner(c, c.Param("dataset_id"))
 	if tenantID == "" {
 		return
 	}
-	items, total, err := h.svc.ListNavClusters(c.Request.Context(), tenantID, c.Param("dataset_id"))
+	keywords := strings.TrimSpace(c.Query("keywords"))
+	items, total, err := h.svc.ListNavClusters(c.Request.Context(), tenantID, c.Param("dataset_id"), keywords)
 	if err != nil {
 		common.ErrorWithCode(c, common.CodeDataError, err.Error())
 		return
@@ -336,13 +339,15 @@ func (h *DatasetArtifactHandler) ListNavigation(c *gin.Context) {
 	common.SuccessWithData(c, gin.H{"total": total, "items": items}, "success")
 }
 
-// ListNavigationChildren handles GET /navigation/<name>/children — list children of a navigation cluster.
+// ListNavigationChildren handles GET /navigation/<name>/children — list
+// children of a navigation cluster, optionally filtered by keywords.
 func (h *DatasetArtifactHandler) ListNavigationChildren(c *gin.Context) {
 	_, tenantID, _ := h.datasetOwner(c, c.Param("dataset_id"))
 	if tenantID == "" {
 		return
 	}
-	items, total, err := h.svc.ListNavChildren(c.Request.Context(), tenantID, c.Param("dataset_id"), c.Param("name"))
+	keywords := strings.TrimSpace(c.Query("keywords"))
+	items, total, err := h.svc.ListNavChildren(c.Request.Context(), tenantID, c.Param("dataset_id"), c.Param("name"), keywords)
 	if err != nil {
 		common.ErrorWithCode(c, common.CodeDataError, err.Error())
 		return
